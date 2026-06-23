@@ -556,33 +556,39 @@ function listenToSession(){
     set(ref(db,'session/screen'), null)
       .then(()=> dbg('Session cleared on presenter load', 'ok'))
       .catch(e => dbg(`Session clear failed: ${e.message}`, 'err'));
+    return; // presenter never follows sync
   }
 
-  // Skip the very first snapshot — it may be a stale value from a prior session
-  let firstSnap = true;
-  onValue(ref(db,'session/screen'), snap => {
-    if(firstSnap){ firstSnap = false; dbg('Initial snapshot skipped (stale guard)'); return; }
+  // Screens that come before landing in the flow
+  // Once presenter moves past these, participants need to visit landing first
+  const NEEDS_LANDING = new Set(['tutorial','pause','fearstorm0','fearstorm1','fearstorm2','qa','thankyou']);
 
+  onValue(ref(db,'session/screen'), snap => {
     const key = snap.val();
     dbg(`Session snap received: ${JSON.stringify(key)}`, 'ok');
-    if(!key) { dbg('Screen key is null — session was cleared or not yet set'); return; }
-    if(S.isPresenter) { dbg('Presenter ignoring incoming sync'); return; }
+
+    // null means presenter just loaded/cleared — stay on current screen
+    if(!key){ dbg('Session cleared — staying put'); return; }
 
     const def = SYNC_SCREENS[key];
-    if(!def) { dbg(`Unknown screen key: ${key}`, 'err'); return; }
+    if(!def){ dbg(`Unknown screen key: ${key}`, 'err'); return; }
 
+    // Participant hasn't done landing yet
     if(!S.landingComplete){
       if(PRE_LANDING_KEYS.has(key)){
-        dbg(`Pre-landing screen ${key} — following presenter directly`);
+        // Still in intro slides — follow presenter directly
+        dbg(`Pre-landing intro screen: ${key} — following`);
         _applyRemoteScreen(key);
-        return;
+      } else if(NEEDS_LANDING.has(key)){
+        // Presenter has moved past landing — send participant there first
+        if(key.startsWith('fearstorm')) S.pendingScreen = key;
+        dbg(`Presenter past landing, redirecting participant to landing (pending: ${key})`);
+        _showScreenLocal('screen-landing');
       }
-      if(key.startsWith('fearstorm')) S.pendingScreen = key;
-      dbg(`Landing not complete — queuing ${key}, holding on landing`);
-      _showScreenLocal('screen-landing');
       return;
     }
 
+    // Landing complete — follow presenter everywhere except landing itself
     dbg(`Applying remote screen: ${key}`);
     _applyRemoteScreen(key);
   }, e => dbg(`Session listener error: ${e.message}`, 'err'));
