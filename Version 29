@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Professionally Uncertain</title>
+<style>
+:root {
+  --warm-bg:#FDF6EE;
+  --warm-surface:#FFF9F3;
+  --warm-accent:#8B4F1A;
+  --warm-accent-light:#F0DCC4;
+  --warm-text:#3D2B1F;
+  --warm-text-muted:#5C3D28;
+  --warm-border:rgba(139,79,26,0.2);
+  --radius:12px;--radius-sm:8px;
+  --font:'Segoe UI',system-ui,sans-serif;
+  --board-bg:#F5EDE0;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:var(--font);background:var(--warm-bg);color:var(--warm-text);display:flex;flex-direction:column;}
+
+.screen{display:none;flex-direction:column;width:100%;overflow-y:auto;}
+.screen.active{display:flex;}
+/* Height set dynamically via JS --screen-h variable */
+.screen{height:var(--screen-h,100vh);}
+
+/* DEV NAV */
+.dev-nav{background:#1e1b4b;color:#fff;padding:.4rem .9rem;display:flex;align-items:center;gap:.5rem;flex-shrink:0;flex-wrap:wrap;}
+.dev-badge{background:#7C3AED;color:#fff;font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;padding:.15rem .5rem;border-radius:999px;white-space:nowrap;}
+.dev-btn{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25);padding:.28rem .7rem;border-radius:999px;font-size:.72rem;cursor:pointer;font-family:var(--font);transition:background .15s;white-space:nowrap;}
+.dev-btn:hover{background:rgba(255,255,255,.22);}
+
+/* =============================================
+   INTRO SLIDES
+============================================= */
+.intro-slide{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  padding:2.5rem 3rem;
+  position:relative;
+  overflow:hidden;
+}
+.intro-slide::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at 60% 40%,rgba(240,220,196,.55) 0%,transparent 70%);
+  pointer-events:none;
+}
+.intro-slide-inner{position:relative;z-index:1;max-width:700px;width:100%;}
+
+/* TITLE SLIDE */
+.title-eyebrow{font-size:.78rem;text-transform:uppercase;letter-spacing:.14em;color:var(--warm-accent);font-weight:700;margin-bottom:1.1rem;}
+.title-main{font-size:clamp(2.6rem,7vw,4.2rem);font-weight:700;line-height:1.1;color:var(--warm-text);margin-bottom:.8rem;}
+.title-divider{width:56px;height:3px;background:var(--warm-accent);border-radius:2px;margin:1.2rem 0;}
+.title-sub{font-size:clamp(1.15rem,2.8vw,1.5rem);color:var(--warm-text-muted);line-height:1.45;margin-bottom:1.8rem;font-style:italic;}
+.title-presenter{font-size:1.1rem;font-weight:700;color:var(--warm-text);margin-bottom:.3rem;}
+.title-meta{font-size:.92rem;color:var(--warm-text-muted);line-height:1.8;}
+.title-date{font-size:.88rem;color:var(--warm-text-muted);margin-top:.6rem;letter-spacing:.03em;}
+
+/* WHO AM I SLIDE */
+.who-slide-heading{
+  font-size:2.2rem;
+  font-weight:700;
+  color:var(--warm-text);
+  margin-bottom:1.4rem;
+  padding-bottom:.75rem;
+  border-bottom:2px solid var(--warm-border);
+}
+.who-layout{display:flex;align-items:flex-start;gap:2.5rem;}
+.who-photo{
+  width:210px;min-width:210px;height:280px;
+  object-fit:cover;object-position:top center;
+  border-radius:6px;
+  border:3px solid var(--warm-accent-light);
+  box-shadow:3px 5px 18px rgba(139,79,26,.18);
+  flex-shrink:0;
+}
+.who-right{display:flex;flex-direction:column;gap:1.1rem;padding-top:.25rem;flex:1;}
+.who-name-row{display:flex;align-items:baseline;gap:.75rem;flex-wrap:wrap;}
+.who-name{font-size:2rem;font-weight:700;color:var(--warm-text);line-height:1.1;}
+.who-pronouns{font-size:.9rem;color:var(--warm-text-muted);font-style:italic;}
+.who-degrees{display:flex;flex-direction:column;gap:.2rem;}
+.who-degrees span{font-size:.95rem;color:var(--warm-text-muted);line-height:1.6;}
+.who-role-title{font-size:1rem;color:var(--warm-text);line-height:1.5;}
+.who-role-org{font-size:1rem;color:var(--warm-text-muted);line-height:1.5;}
+.who-funfact{
+  font-size:.9rem;color:var(--warm-text);
+  font-style:italic;
+  border-left:3px solid var(--warm-accent-light);
+  padding-left:.85rem;line-height:1.6;
+}
+
+/* FEARSTORMING DEFINITION SLIDE */
+.fear-heading{font-size:1.6rem;font-weight:700;color:var(--warm-text);margin-bottom:1.2rem;}
+.fear-body{font-size:.95rem;color:var(--warm-text-muted);line-height:1.75;margin-bottom:1.4rem;}
+.fear-body p{margin-bottom:.75rem;}
+.fear-body strong{color:var(--warm-text);}
+.fear-adds{background:var(--warm-accent-light);border-radius:var(--radius);padding:1rem 1.25rem;}
+.fear-adds-label{font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;font-weight:700;color:var(--warm-accent);margin-bottom:.6rem;}
+.fear-adds ul{list-style:none;display:flex;flex-direction:column;gap:.35rem;}
+.fear-adds li{font-size:.88rem;color:var(--warm-text);padding-left:1.2rem;position:relative;line-height:1.5;}
+.fear-adds li::before{content:'→';position:absolute;left:0;color:var(--warm-accent);font-size:.8rem;}
+
+/* Slide nav bar — buttons only shown in presenter mode */
+.intro-nav{
+  background:var(--warm-surface);border-top:1px solid var(--warm-border);
+  padding:.65rem 1.25rem;
+  display:flex;align-items:center;justify-content:flex-end;
+  gap:.75rem;flex-shrink:0;
+}
+.intro-dots{display:flex;gap:.35rem;flex:1;align-items:center;flex-wrap:wrap;}
+.intro-dot{width:7px;height:7px;border-radius:50%;background:var(--warm-border);flex-shrink:0;}
+.intro-dot.active{background:var(--warm-accent);}
+/* Nav buttons hidden from participants — shown only in presenter mode */
+.intro-nav-btn{display:none;}
+.presenter-mode .intro-nav-btn{display:inline-flex;}
+
+/* =============================================
+   BUTTONS
+============================================= */
+.btn-primary{background:var(--warm-accent);color:#fff;border:none;padding:.85rem 2.5rem;border-radius:999px;font-size:1rem;font-weight:700;cursor:pointer;transition:opacity .15s,transform .1s;font-family:var(--font);display:inline-flex;align-items:center;}
+.btn-primary:hover{opacity:.88;transform:translateY(-1px);}
+.btn-primary:disabled{opacity:.35;cursor:not-allowed;transform:none;}
+.btn-primary.sm{padding:.6rem 1.5rem;font-size:.88rem;}
+.btn-secondary{background:transparent;color:var(--warm-accent);border:2px solid var(--warm-accent);padding:.65rem 1.75rem;border-radius:999px;font-size:.9rem;font-weight:700;cursor:pointer;transition:all .15s;font-family:var(--font);display:inline-flex;align-items:center;}
+.btn-secondary:hover{background:var(--warm-accent-light);}
+.btn-secondary.sm{padding:.6rem 1.5rem;font-size:.88rem;}
+
+/* =============================================
+   LANDING — full height fix
+============================================= */
+#screen-landing{
+  align-items:stretch;
+  justify-content:center;
+  padding:0;
+  text-align:center;
+}
+.landing-inner{max-width:580px;width:100%;margin:auto;padding:2rem;align-self:center;}
+.landing-title{font-size:clamp(1.8rem,5vw,2.8rem);font-weight:700;line-height:1.2;margin-bottom:.75rem;color:var(--warm-text);}
+.landing-subtitle{font-size:1rem;color:var(--warm-text-muted);line-height:1.7;margin-bottom:2.5rem;}
+.section-label{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--warm-text-muted);margin-bottom:.9rem;font-weight:700;}
+.color-grid{display:flex;gap:.9rem;justify-content:center;flex-wrap:wrap;margin-bottom:2rem;}
+.color-option{display:flex;flex-direction:column;align-items:center;gap:.35rem;cursor:pointer;}
+.color-swatch{width:48px;height:48px;border-radius:10px;border:3px solid transparent;transition:transform .15s,border-color .15s;}
+.color-option:hover .color-swatch{transform:scale(1.1);}
+.color-option.selected .color-swatch{border-color:var(--warm-text);transform:scale(1.1);box-shadow:0 0 0 3px rgba(61,43,31,.15);}
+.color-name{font-size:.7rem;color:var(--warm-text-muted);}
+.stamp-grid{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;margin-bottom:2.5rem;}
+.stamp-option{display:flex;flex-direction:column;align-items:center;gap:.4rem;cursor:pointer;padding:.65rem 1rem;border-radius:var(--radius);border:2px solid var(--warm-border);background:var(--warm-surface);transition:all .15s;min-width:72px;}
+.stamp-option:hover{border-color:var(--warm-accent);}
+.stamp-option.selected{border-color:var(--warm-accent);background:var(--warm-accent-light);}
+.stamp-preview{width:40px;height:40px;display:flex;align-items:center;justify-content:center;}
+.stamp-label{font-size:.68rem;color:var(--warm-text-muted);font-weight:600;}
+
+/* =============================================
+   BOARD
+============================================= */
+.board-screen{flex-direction:column;overflow:hidden;}
+.board-header{background:var(--warm-surface);border-bottom:1px solid var(--warm-border);padding:.65rem 1.25rem;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.board-title{font-size:.85rem;font-weight:700;color:var(--warm-text-muted);}
+.screen-indicator{font-size:.75rem;color:var(--warm-text-muted);background:var(--warm-accent-light);padding:.2rem .65rem;border-radius:999px;}
+.prompt-banner{background:var(--warm-accent-light);border-bottom:1px solid var(--warm-border);padding:.8rem 1.25rem;flex-shrink:0;}
+.prompt-label{font-size:.65rem;text-transform:uppercase;letter-spacing:.08em;color:var(--warm-accent);font-weight:700;margin-bottom:.2rem;}
+.prompt-text{font-size:.92rem;color:var(--warm-text);line-height:1.5;}
+/* Canvas fills all remaining space between prompt banner and toolbar.
+   overflow-y:auto allows scrolling only when notes exceed canvas height.
+   min-height:0 is critical — without it flex children won't shrink below content size. */
+.board-canvas{flex:1;position:relative;overflow-y:auto;overflow-x:hidden;background:var(--board-bg);background-image:radial-gradient(circle,rgba(139,79,26,.08) 1px,transparent 1px);background-size:28px 28px;min-height:0;}
+.board-number{position:absolute;bottom:-.08em;right:.05em;font-size:clamp(8rem,22vw,16rem);font-weight:900;color:rgba(139,79,26,.07);line-height:1;pointer-events:none;user-select:none;z-index:0;font-family:var(--font);}
+
+/* =============================================
+   STICKY NOTES
+============================================= */
+.sticky{position:absolute;width:148px;min-height:120px;border-radius:3px;padding:10px;font-family:var(--font);font-size:13px;line-height:1.45;color:#1A0F0A;word-break:break-word;transition:left .35s ease,top .35s ease,box-shadow .15s;cursor:default;user-select:none;box-shadow:2px 3px 8px rgba(0,0,0,.16);z-index:1;}
+.sticky.stampable{cursor:pointer;}
+.sticky.stampable:hover{box-shadow:0 0 0 3px rgba(139,79,26,.5),2px 3px 10px rgba(0,0,0,.18);}
+.sticky-text{display:block;margin-bottom:6px;}
+.sticky-stamps{display:flex;flex-wrap:wrap;align-items:center;gap:1px;margin-top:5px;}
+.sticky-stamp-el{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;animation:stampDrop .35s cubic-bezier(.34,1.56,.64,1) forwards;}
+@keyframes stampDrop{0%{transform:rotate(var(--sr,0deg)) scale(0);opacity:0;}60%{transform:rotate(var(--sr,0deg)) scale(1.2);opacity:1;}100%{transform:rotate(var(--sr,0deg)) scale(1);opacity:1;}}
+.example-note{outline:2.5px dashed var(--warm-accent);outline-offset:3px;}
+
+/* =============================================
+   TOOLBAR
+============================================= */
+.toolbar{background:var(--warm-surface);border-top:1px solid var(--warm-border);padding:.65rem 1.25rem;display:flex;align-items:center;gap:.75rem;flex-shrink:0;position:relative;z-index:20;}
+.tool-btn{display:flex;flex-direction:column;align-items:center;gap:.25rem;padding:.5rem .85rem;border-radius:var(--radius-sm);border:2px solid var(--warm-border);background:var(--warm-surface);cursor:pointer;transition:all .15s;font-family:var(--font);position:relative;}
+.tool-btn:hover{border-color:var(--warm-accent);background:var(--warm-accent-light);}
+.tool-btn.active{border-color:var(--warm-accent);background:var(--warm-accent-light);}
+.tool-btn:disabled{opacity:.35;cursor:not-allowed;}
+.tool-icon-wrap{width:36px;height:36px;display:flex;align-items:center;justify-content:center;}
+.tool-label{font-size:.6rem;color:var(--warm-text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em;}
+.toolbar-hint{flex:1;font-size:.82rem;color:var(--warm-text-muted);font-style:italic;}
+.tool-arrow{position:absolute;top:-3.4rem;left:50%;transform:translateX(-50%);font-size:2.4rem;pointer-events:none;animation:arrowBounce .65s ease-in-out infinite alternate;display:none;z-index:30;}
+.tool-arrow.visible{display:block;}
+@keyframes arrowBounce{from{transform:translateX(-50%) translateY(0);}to{transform:translateX(-50%) translateY(8px);}}
+
+/* =============================================
+   NOTE EDITOR
+============================================= */
+.note-editor-overlay{display:none;position:fixed;inset:0;background:rgba(61,43,31,.45);z-index:100;align-items:center;justify-content:center;padding:1rem;}
+.note-editor-overlay.open{display:flex;}
+.note-editor{background:#fff;border-radius:var(--radius);padding:1.5rem;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.2);}
+.note-editor-label{font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;font-weight:700;color:var(--warm-accent);margin-bottom:.65rem;}
+.note-color-bar{height:8px;border-radius:4px;margin-bottom:.9rem;}
+.note-editor-pad{width:100%;min-height:130px;border-radius:var(--radius-sm);border:2px solid var(--warm-border);padding:.7rem;font-family:var(--font);font-size:15px;line-height:1.6;color:var(--warm-text);resize:none;outline:none;transition:border-color .15s;margin-bottom:1rem;}
+.note-editor-pad:focus{border-color:var(--warm-accent);}
+.note-editor-actions{display:flex;gap:.75rem;justify-content:flex-end;}
+
+/* INSTRUCTION TIP */
+.instruction-tip{position:absolute;background:var(--warm-text);color:#fff;padding:.55rem .9rem;border-radius:var(--radius-sm);font-size:.82rem;max-width:260px;line-height:1.45;z-index:15;pointer-events:none;}
+
+/* GOOD JOB TOAST */
+.good-job-toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);background:var(--warm-accent);color:#fff;padding:1rem 2.25rem;border-radius:999px;font-size:1.4rem;font-weight:700;z-index:300;pointer-events:none;}
+.good-job-toast.show{animation:toastPop 1.7s cubic-bezier(.34,1.56,.64,1) forwards;}
+@keyframes toastPop{0%{transform:translate(-50%,-50%) scale(0);opacity:0;}25%{transform:translate(-50%,-50%) scale(1.08);opacity:1;}70%{transform:translate(-50%,-50%) scale(1);opacity:1;}100%{transform:translate(-50%,-50%) scale(.8);opacity:0;}}
+
+/* PRESENTER BAR */
+.presenter-bar{background:#3D2B1F;color:#fff;padding:.55rem 1rem;display:flex;align-items:center;gap:.65rem;flex-shrink:0;}
+.presenter-badge{background:var(--warm-accent);color:#fff;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;padding:.18rem .55rem;border-radius:999px;}
+.presenter-label{font-size:.82rem;flex:1;opacity:.8;}
+.btn-presenter{background:var(--warm-accent);color:#fff;border:none;padding:.38rem .9rem;border-radius:999px;font-size:.8rem;font-weight:700;cursor:pointer;font-family:var(--font);transition:opacity .15s;}
+.btn-presenter:hover{opacity:.85;}
+.btn-presenter:disabled{opacity:.3;cursor:not-allowed;}
+
+/* =============================================
+   SIMPLE SCREENS — robust full-height
+============================================= */
+.simple-screen{
+  align-items:stretch;
+  justify-content:center;
+  padding:0;
+  text-align:center;
+}
+.simple-screen .simple-inner{
+  margin:auto;
+  padding:2rem;
+  width:100%;
+  max-width:520px;
+  align-self:center;
+}
+.simple-inner{max-width:520px;width:100%;}
+.simple-icon{font-size:2.8rem;margin-bottom:1rem;}
+.simple-title{font-size:2rem;font-weight:700;margin-bottom:.65rem;color:var(--warm-text);}
+.simple-sub{font-size:1rem;color:var(--warm-text-muted);line-height:1.65;}
+
+/* Q&A */
+#screen-qa{position:relative;overflow:hidden;}
+.qa-title-large{font-size:2.8rem;font-weight:700;color:var(--warm-text);margin-bottom:.5rem;}
+.qa-sticky-wrap{position:absolute;bottom:2.5rem;right:2.5rem;}
+.qa-sticky{width:190px;height:190px;background:#fff;border-radius:3px;padding:20px 16px 16px;box-shadow:3px 3px 12px rgba(0,0,0,.15);transform:rotate(2deg);position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;}
+.qa-sticky-main{font-size:13px;color:#1A0F0A;line-height:1.6;margin-bottom:14px;text-align:center;font-weight:700;}
+.qa-sticky-email{font-size:12px;color:#8B4F1A;line-height:1.5;text-align:center;}
+
+/* SPOTLIGHT — presenter mode note highlight */
+@keyframes spotlightPulse{
+  0%  {box-shadow:0 0 0 0px rgba(139,79,26,.6),2px 3px 8px rgba(0,0,0,.16);}
+  50% {box-shadow:0 0 0 8px rgba(139,79,26,.15),2px 3px 8px rgba(0,0,0,.16);}
+  100%{box-shadow:0 0 0 0px rgba(139,79,26,.0),2px 3px 8px rgba(0,0,0,.16);}
+}
+.sticky.spotlit{
+  box-shadow:0 0 0 4px rgba(139,79,26,.55),2px 3px 10px rgba(0,0,0,.2) !important;
+  animation:spotlightPulse 1.8s ease-in-out infinite;
+  z-index:10;
+}
+
+/* THANK YOU */
+.contact-card{background:var(--warm-surface);border:1px solid var(--warm-border);border-radius:var(--radius);padding:1.5rem;text-align:left;margin-top:1.5rem;}
+.contact-heading{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--warm-accent);font-weight:700;margin-bottom:.9rem;}
+.contact-name{font-size:1.05rem;font-weight:700;margin-bottom:.2rem;color:var(--warm-text);}
+.contact-role,.contact-org{font-size:.86rem;color:var(--warm-text-muted);margin-bottom:.1rem;}
+.contact-org{margin-bottom:1rem;}
+.contact-links{display:flex;flex-direction:column;gap:.4rem;}
+.contact-link{font-size:.9rem;color:var(--warm-accent);text-decoration:none;}
+.contact-link:hover{text-decoration:underline;}
+</style>
+</head>
+<body>
+
+<div class="good-job-toast" id="goodJobToast">🎉 Good job!</div>
+
+<!-- NOTE EDITOR -->
+<div class="note-editor-overlay" id="noteEditorOverlay">
+  <div class="note-editor">
+    <div class="note-editor-label">Write your sticky note</div>
+    <div class="note-color-bar" id="noteColorBar"></div>
+    <textarea class="note-editor-pad" id="noteTextarea" placeholder="Type your response here…" maxlength="200"></textarea>
+    <div class="note-editor-actions">
+      <button class="btn-secondary" onclick="closeNoteEditor()">Cancel</button>
+      <button class="btn-primary" onclick="addNoteToBoard()">Add to fearstorm</button>
+    </div>
+  </div>
+</div>
+
+<!-- SCREEN: TITLE -->
+<div class="screen active" id="screen-title">
+  <div class="dev-nav" id="devNav-title"></div>
+  <div class="presenter-bar" id="presBar-title" style="display:none;">
+    <span class="presenter-badge">Presenter</span>
+    <span class="presenter-label">Title slide</span>
+    <button class="btn-presenter" onclick="showScreen('screen-whoami')">Next →</button>
+  </div>
+  <div class="intro-slide" style="flex:1;">
+    <div class="intro-slide-inner">
+      <div class="title-eyebrow" id="titleEyebrow"></div>
+      <h1 class="title-main" id="titleMain"></h1>
+      <div class="title-divider"></div>
+      <p class="title-sub" id="titleSub"></p>
+      <div class="title-presenter" id="titlePresenter"></div>
+      <div class="title-meta" id="titleMeta"></div>
+      <div class="title-date" id="titleDate"></div>
+    </div>
+  </div>
+  <div class="intro-nav">
+    <div class="intro-dots" id="dots-title"></div>
+    <button class="btn-primary sm intro-nav-btn" onclick="showScreen('screen-whoami')">Next →</button>
+  </div>
+</div>
+
+<!-- SCREEN: WHO AM I -->
+<div class="screen" id="screen-whoami">
+  <div class="dev-nav" id="devNav-whoami"></div>
+  <div class="presenter-bar" id="presBar-whoami" style="display:none;">
+    <span class="presenter-badge">Presenter</span>
+    <span class="presenter-label">Who Am I slide</span>
+    <button class="btn-presenter" onclick="showScreen('screen-feardef')">Next →</button>
+  </div>
+  <div class="intro-slide" style="flex:1;">
+    <div class="intro-slide-inner">
+      <h2 class="who-slide-heading" id="whoHeading"></h2>
+      <div class="who-layout">
+        <img class="who-photo" id="whoPhoto" src="" alt="Payton D. Cooke">
+        <div class="who-right">
+          <div class="who-name-row">
+            <span class="who-name" id="whoName"></span>
+            <span class="who-pronouns" id="whoPronouns"></span>
+          </div>
+          <div class="who-degrees" id="whoDegrees"></div>
+          <div class="who-role">
+            <div class="who-role-title" id="whoRoleTitle"></div>
+            <div class="who-role-org" id="whoRoleOrg"></div>
+          </div>
+          <div class="who-funfact" id="whoFunFact"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="intro-nav">
+    <div class="intro-dots" id="dots-whoami"></div>
+    <button class="btn-secondary sm intro-nav-btn" onclick="showScreen('screen-title')">← Back</button>
+    <button class="btn-primary sm intro-nav-btn" onclick="showScreen('screen-feardef')">Next →</button>
+  </div>
+</div>
+
+<!-- SCREEN: WHAT IS FEARSTORMING -->
+<div class="screen" id="screen-feardef">
+  <div class="dev-nav" id="devNav-feardef"></div>
+  <div class="presenter-bar" id="presBar-feardef" style="display:none;">
+    <span class="presenter-badge">Presenter</span>
+    <span class="presenter-label">What is Fearstorming slide</span>
+    <button class="btn-presenter" onclick="showScreen('screen-landing')">Go to activity →</button>
+  </div>
+  <div class="intro-slide" style="flex:1;justify-content:flex-start;padding-top:2rem;overflow-y:auto;">
+    <div class="intro-slide-inner" style="text-align:left;">
+      <h2 class="fear-heading" id="fearHeading"></h2>
+      <div class="fear-body" id="fearBody"></div>
+      <div class="fear-adds">
+        <div class="fear-adds-label" id="fearAddsLabel"></div>
+        <ul id="fearAddsList"></ul>
+      </div>
+    </div>
+  </div>
+  <div class="intro-nav">
+    <div class="intro-dots" id="dots-feardef"></div>
+    <button class="btn-secondary sm intro-nav-btn" onclick="showScreen('screen-whoami')">← Back</button>
+    <button class="btn-primary sm intro-nav-btn" onclick="showScreen('screen-landing')">Let's begin →</button>
+  </div>
+</div>
+
+<!-- SCREEN: LANDING -->
+<div class="screen" id="screen-landing">
+  <div class="dev-nav" id="devNav-landing"></div>
+  <div class="dev-nav" id="devNav-landing"></div>
+  <div class="landing-inner">
+    <h1 class="landing-title" id="landingTitle"></h1>
+    <p class="landing-subtitle" id="landingSubtitle"></p>
+    <div class="section-label">Choose your sticky note color</div>
+    <div class="color-grid" id="colorGrid"></div>
+    <div class="section-label">Choose your stamp</div>
+    <div class="stamp-grid" id="stampGrid"></div>
+    <button class="btn-primary" id="landingNextBtn" onclick="goToTutorial()" disabled>Let's begin →</button>
+  </div>
+</div>
+
+<!-- SCREEN: TUTORIAL -->
+<div class="screen board-screen" id="screen-tutorial">
+  <div class="dev-nav" id="devNav-tutorial"></div>
+  <div class="presenter-bar" id="presBar-tutorial" style="display:none;">
+    <span class="presenter-badge">Presenter</span>
+    <span class="presenter-label">Tutorial screen</span>
+    <button class="btn-presenter" id="presAdvanceTutorial" onclick="showScreen('screen-pause')" disabled>Move to pause →</button>
+  </div>
+  <div class="board-header">
+    <span class="board-title">Tutorial</span>
+    <span class="screen-indicator">Practice round</span>
+  </div>
+  <div class="prompt-banner">
+    <div class="prompt-label">Try it out</div>
+    <div class="prompt-text" id="tutorialPromptText"></div>
+  </div>
+  <div class="board-canvas" id="tutorialCanvas">
+    <div class="instruction-tip" id="tutorialTip" style="top:1.2rem;left:50%;transform:translateX(-50%);display:none;"></div>
+  </div>
+  <div class="toolbar">
+    <button class="tool-btn active" id="tutToolNote" onclick="tutSelectTool('note')">
+      <span class="tool-arrow" id="arrowNote">⬇️</span>
+      <div class="tool-icon-wrap" id="tutNoteIcon"></div>
+      <span class="tool-label">Sticky note</span>
+    </button>
+    <button class="tool-btn" id="tutToolStamp" onclick="tutSelectTool('stamp')" disabled>
+      <span class="tool-arrow" id="arrowStamp">⬇️</span>
+      <div class="tool-icon-wrap" id="tutStampIcon"></div>
+      <span class="tool-label">Stamper</span>
+    </button>
+    <span class="toolbar-hint" id="tutHint">Click the sticky note to write something</span>
+  </div>
+</div>
+
+<!-- SCREEN: PAUSE -->
+<div class="screen simple-screen" id="screen-pause">
+  <div class="dev-nav" id="devNav-pause"></div>
+  <div class="presenter-bar" id="presBar-pause" style="display:none;">
+    <span class="presenter-badge">Presenter</span>
+    <span class="presenter-label">Pause — participants are waiting</span>
+    <button class="btn-presenter" onclick="showFearstorm(0)">Start Fearstorm 1 →</button>
+  </div>
+  <div class="simple-inner">
+    <div class="simple-icon">☕</div>
+    <h2 class="simple-title" id="pauseTitle"></h2>
+    <p class="simple-sub" id="pauseSub"></p>
+  </div>
+</div>
+
+<!-- SCREEN: FEARSTORM -->
+<div class="screen board-screen" id="screen-fearstorm">
+  <div class="dev-nav" id="devNav-fs"></div>
+  <div class="presenter-bar" id="presBar-fs" style="display:none;">
+    <span class="presenter-badge">Presenter</span>
+    <span class="presenter-label" id="presFsLabel">Fearstorm 1 of 3</span>
+    <button class="btn-presenter" id="fsAdvanceBtn" onclick="advanceFearstorm()">Next prompt →</button>
+  </div>
+  <div class="board-header">
+    <span class="board-title">Brewing Up a Fearstorm</span>
+    <span class="screen-indicator" id="fsIndicator">1 of 3</span>
+  </div>
+  <div class="prompt-banner">
+    <div class="prompt-label">Prompt</div>
+    <div class="prompt-text" id="fsPromptText"></div>
+  </div>
+  <div class="board-canvas" id="fsCanvas">
+    <div class="board-number" id="boardNumber">1</div>
+  </div>
+  <div class="toolbar">
+    <button class="tool-btn" id="fsToolNote" onclick="fsClickNote()">
+      <div class="tool-icon-wrap" id="fsNoteIcon"></div>
+      <span class="tool-label">Sticky note</span>
+    </button>
+    <button class="tool-btn" id="fsToolStamp" onclick="fsSelectStamp()">
+      <div class="tool-icon-wrap" id="fsStampIcon"></div>
+      <span class="tool-label">Stamper</span>
+    </button>
+    <span class="toolbar-hint" id="fsHint">Choose a tool to get started</span>
+  </div>
+</div>
+
+<!-- SCREEN: Q&A -->
+<div class="screen simple-screen" id="screen-qa" style="position:relative;overflow:hidden;">
+  <div class="dev-nav" id="devNav-qa"></div>
+  <div class="presenter-bar" id="presBar-qa" style="display:none;">
+    <span class="presenter-badge">Presenter</span>
+    <span class="presenter-label">Q&A screen</span>
+    <button class="btn-presenter" onclick="showScreen('screen-thankyou')">Go to Thank You →</button>
+  </div>
+  <div class="simple-inner">
+    <h2 class="qa-title-large" id="qaTitle"></h2>
+  </div>
+  <div class="qa-sticky-wrap">
+    <div class="qa-sticky">
+      <div class="qa-sticky-main" id="qaStickyText"></div>
+      <div class="qa-sticky-email" id="qaStickyEmail"></div>
+    </div>
+  </div>
+</div>
+
+<!-- SCREEN: THANK YOU -->
+<div class="screen simple-screen" id="screen-thankyou">
+  <div class="dev-nav" id="devNav-ty"></div>
+  <div class="simple-inner">
+    <h1 class="simple-title" id="tyTitle"></h1>
+    <p class="simple-sub" id="tySub"></p>
+    <div class="contact-card">
+      <div class="contact-heading">Keep in Touch</div>
+      <div class="contact-name" id="ctName"></div>
+      <div class="contact-role" id="ctRole"></div>
+      <div class="contact-org" id="ctOrg"></div>
+      <div class="contact-links">
+        <a class="contact-link" id="ctEmail" href="#"></a>
+        <a class="contact-link" id="ctLinkedIn" href="#" target="_blank"></a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// =============================================
+// CONFIG
+// =============================================
+const CONFIG = {
+  slides: {
+    title: {
+      eyebrow: "NYPL Staff Talk",
+      main: "Professionally Uncertain",
+      sub: "Using Fearstorming to Build Confidence",
+      presenterName: "Payton D. Cooke",
+      meta: "Engagement and Instruction Librarian · CT State – Manchester",
+      date: "June 26, 2026"
+    },
+    whoami: {
+      heading: "Who Am I?",
+      name: "Payton D. Cooke",
+      pronouns: "(she/her)",
+      // Replace PASTE_BASE64_HERE with your Data URI string from base64-image.de
+      // It should start with: data:image/jpeg;base64, or data:image/png;base64,
+      photo: "PASTE_BASE64_HERE",
+      degrees: [
+        "MA – Literary Studies",
+        "MS – Library and Information Science"
+      ],
+      roleTitle: "Engagement and Instruction Librarian",
+      roleOrg: "@ CT State – Manchester",
+      funfact: "Fun fact: This is my first time ever visiting the New York Public Library!"
+    },
+    feardef: {
+      heading: "What is Fearstorming?",
+      body: [
+        "Fear is a basic human emotion — one that shows up at work as nervousness, uncertainty, or anxiety.",
+        "Fearstorming is a collaborative approach that takes fear as the starting point for confidence — not the opposition. Rooted in Rogers' theory of facilitation and adapted from brainstorming, it invites open, nonevaluative expression of the moments that catch us off guard."
+      ],
+      addsLabel: "Today's adaptation adds:",
+      adds: [
+        "Peer validation",
+        "Facilitated reflection",
+        "A shared foundation for trust and learning"
+      ]
+    }
+  },
+
+  landing: {
+    title: "The Calm Before the Fearstorm",
+    subtitle: "Welcome! In the following activities, you'll share the moments that you feel uncertain or anxious in your work — then work collaboratively to find ways to work with or through these fears. Before we begin, pick a color for your sticky notes and a stamp that feels right."
+  },
+
+  colors: [
+    { id:"yellow",   label:"Sunflower", hex:"#FFE566", tabHex:"#E8C800" },
+    { id:"peach",    label:"Peach",     hex:"#FFB899", tabHex:"#E07850" },
+    { id:"mint",     label:"Mint",      hex:"#B8EAD5", tabHex:"#68C49A" },
+    { id:"lavender", label:"Lavender",  hex:"#D5C8F5", tabHex:"#9C80E0" },
+    { id:"sky",      label:"Sky",       hex:"#B8DEFF", tabHex:"#68AAEE" },
+    { id:"rose",     label:"Rose",      hex:"#FFBDCC", tabHex:"#E07090" }
+  ],
+
+  stamps: [
+    { id:"check", label:"Check",
+      svg:`<svg viewBox="0 0 40 40" width="36" height="36" xmlns="http://www.w3.org/2000/svg"><circle cx="20" cy="20" r="17" fill="#22C55E" stroke="white" stroke-width="3.5"/><polyline points="12,20 17,26 28,14" fill="none" stroke="white" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+    },
+    { id:"plus1", label:"+1",
+      svg:`<svg viewBox="0 0 40 40" width="36" height="36" xmlns="http://www.w3.org/2000/svg"><text x="20" y="31" text-anchor="middle" font-family="'Segoe UI',Arial Black,sans-serif" font-weight="900" font-size="30" stroke="white" stroke-width="6" stroke-linejoin="round" paint-order="stroke" fill="#7C3AED">+1</text></svg>`
+    },
+    { id:"heart", label:"Heart",
+      svg:`<svg viewBox="0 0 40 40" width="36" height="36" xmlns="http://www.w3.org/2000/svg"><path d="M20 34 C20 34 4 23 4 12.5 C4 7.5 8 3.5 13.5 4.5 C16.5 5 19 7.5 20 9.5 C21 7.5 23.5 5 26.5 4.5 C32 3.5 36 7.5 36 12.5 C36 23 20 34 20 34Z" fill="#EF4444" stroke="white" stroke-width="3.5" stroke-linejoin="round"/></svg>`
+    },
+    { id:"star", label:"Star",
+      svg:`<svg viewBox="0 0 40 40" width="36" height="36" xmlns="http://www.w3.org/2000/svg"><polygon points="20,3 24.5,15 38,15 27,23 31,35 20,27.5 9,35 13,23 2,15 15.5,15" fill="#FACC15" stroke="white" stroke-width="2" stroke-linejoin="round"/></svg>`
+    }
+  ],
+
+  tutorial: {
+    promptText: "Before we dive in — click the sticky note tool and share how you're feeling right now. There are no wrong answers.",
+    tips: [
+      "👆 Click the sticky note in the toolbar to open it",
+      "✏️ Type your response, then click \"Add to fearstorm\"",
+      "🎉 Now select the stamper and click on the example note below",
+      "🕐 Great work! Moving you over in just a moment…"
+    ],
+    exampleNoteText: "Nervous, but excited!",
+    autoAdvanceDelay: 2800
+  },
+
+  pause: {
+    title: "You're all set!",
+    subtitle: "Nice work on the tutorial. Sit tight — your facilitator will kick off the fearstorm shortly."
+  },
+
+  prompts: [
+    "A patron approaches the desk with a question that falls outside of your expertise. Although their question appears simple to ask it requires a more nuanced answer. The patron is not local and will not be able to return at another time.",
+    "Your manager asks you to step in to provide instruction to a group of six to ten people at the last minute. The talk will be an overview of how the research library works at NYPL and will conclude with a brief building tour.",
+    "A patron approaches the desk and asks what assistive technology is available in the library. They also ask if you would be able to help them navigate using it."
+  ],
+
+  qa: {
+    title: "Questions & Thoughts",
+    stickyText: "Follow-up questions?\nSend them my way!"
+  },
+
+  thankyou: {
+    title: "Thank you 💛",
+    subtitle: "Your honesty and openness made this fearstorm possible. These conversations matter — and so do you."
+  },
+
+  contact: {
+    name: "Payton D. Cooke",
+    role: "Engagement and Instruction Librarian",
+    org: "CT State Community College – Manchester",
+    email: "payton.cooke@ctstate.edu",
+    linkedinHandle: "14pcooke"
+  },
+
+  noteWidth:148, noteHeight:124, notePadding:16,
+  noteMaxRotateDeg:2.5, noteOffsetJitter:5,
+  stampRotateMax:14, stampWobbleMax:5
+};
+
+// =============================================
+// SCREEN ORDER — drives dot indicators
+// =============================================
+const SCREEN_ORDER = [
+  'screen-title',
+  'screen-whoami',
+  'screen-feardef',
+  'screen-landing',
+  'screen-tutorial',
+  'screen-pause',
+  'screen-fearstorm-1',  // virtual IDs for fearstorm variants
+  'screen-fearstorm-2',
+  'screen-fearstorm-3',
+  'screen-qa',
+  'screen-thankyou'
+];
+
+// Dot containers on intro slides (shown on every screen via intro-nav)
+const DOT_CONTAINERS = ['dots-title','dots-whoami','dots-feardef'];
+
+// =============================================
+// STATE
+// =============================================
+const S = {
+  color:null, stamp:null, activeTool:null,
+  tutPhase:0, fsIdx:0, isPresenter:false,
+  tutNotes:[], fsNotes:CONFIG.prompts.map(()=>[]),
+  currentScreenKey:'screen-title'
+};
+
+// =============================================
+// HELPERS
+// =============================================
+function rand(min,max){return Math.random()*(max-min)+min;}
+function scaledSVG(s,px){return s.svg.replace(/width="\d+"/,`width="${px}"`).replace(/height="\d+"/,`height="${px}"`);}
+function renderStamp(el,stamp,px){el.innerHTML=scaledSVG(stamp,px);}
+function setText(id,v){const e=document.getElementById(id);if(e)e.textContent=v;}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function showArrow(id){const e=document.getElementById(id);if(e)e.classList.add('visible');}
+function hideArrow(id){const e=document.getElementById(id);if(e)e.classList.remove('visible');}
+function renderBody(id,paragraphs){
+  const el=document.getElementById(id); if(!el) return;
+  el.innerHTML=paragraphs.map(p=>'<p>'+p.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')+'</p>').join('');
+}
+
+// Build dots for a given container, highlighting the active screen
+function buildDots(containerId, activeKey){
+  const c=document.getElementById(containerId); if(!c) return;
+  c.innerHTML='';
+  SCREEN_ORDER.forEach(key=>{
+    const dot=document.createElement('div');
+    dot.className='intro-dot'+(key===activeKey?' active':'');
+    c.appendChild(dot);
+  });
+}
+function updateDots(activeKey){
+  DOT_CONTAINERS.forEach(id=>buildDots(id,activeKey));
+}
+
+// =============================================
+// INIT
+// =============================================
+// Dynamically set screen height to actual window height
+// This bypasses the unreliable 100vh unit inside iframes
+function setScreenHeight(){
+  document.documentElement.style.setProperty('--screen-h', window.innerHeight + 'px');
+}
+window.addEventListener('resize', setScreenHeight);
+setScreenHeight();
+
+function init(){
+  S.isPresenter=window.location.search.includes('mode=presenter');
+  if(S.isPresenter) document.body.classList.add('presenter-mode');
+  buildColorGrid(); buildStampGrid(); applyConfig(); buildDevNavs();
+  if(S.isPresenter) document.querySelectorAll('.presenter-bar').forEach(b=>b.style.display='flex');
+  updateDots('screen-title');
+}
+
+function applyConfig(){
+  const C=CONFIG,sl=C.slides,co=C.contact;
+  setText('titleEyebrow',   sl.title.eyebrow);
+  setText('titleMain',      sl.title.main);
+  setText('titleSub',       sl.title.sub);
+  setText('titlePresenter', sl.title.presenterName);
+  setText('titleMeta',      sl.title.meta);
+  setText('titleDate',      sl.title.date);
+  document.title=sl.title.main;
+  setText('whoHeading',  sl.whoami.heading);
+  setText('whoName',     sl.whoami.name);
+  setText('whoPronouns', sl.whoami.pronouns);
+  setText('whoFunFact',  sl.whoami.funfact);
+  setText('whoRoleTitle',sl.whoami.roleTitle);
+  setText('whoRoleOrg',  sl.whoami.roleOrg);
+  document.getElementById('whoPhoto').src=sl.whoami.photo;
+  const degEl=document.getElementById('whoDegrees');
+  degEl.innerHTML=sl.whoami.degrees.map(d=>`<span>${d}</span>`).join('');
+  setText('fearHeading',   sl.feardef.heading);
+  renderBody('fearBody',   sl.feardef.body);
+  setText('fearAddsLabel', sl.feardef.addsLabel);
+  document.getElementById('fearAddsList').innerHTML=sl.feardef.adds.map(a=>`<li>${a}</li>`).join('');
+  setText('landingTitle',    C.landing.title);
+  setText('landingSubtitle', C.landing.subtitle);
+  setText('tutorialPromptText', C.tutorial.promptText);
+  setText('pauseTitle', C.pause.title);
+  setText('pauseSub',   C.pause.subtitle);
+  setText('qaTitle', C.qa.title);
+  const qm=document.getElementById('qaStickyText');
+  if(qm) qm.innerHTML=C.qa.stickyText.replace(/\n/g,'<br>');
+  const qe=document.getElementById('qaStickyEmail');
+  if(qe) qe.textContent='📧 '+co.email;
+  setText('tyTitle', C.thankyou.title);
+  setText('tySub',   C.thankyou.subtitle);
+  setText('ctName',  co.name);
+  setText('ctRole',  co.role);
+  setText('ctOrg',   co.org);
+  const em=document.getElementById('ctEmail');
+  em.textContent='📧 '+co.email; em.href='mailto:'+co.email;
+  const li=document.getElementById('ctLinkedIn');
+  li.textContent='🔗 LinkedIn: '+co.linkedinHandle;
+  li.href='https://linkedin.com/in/'+co.linkedinHandle;
+}
+
+// =============================================
+// DEV NAV
+// =============================================
+const SCREENS=[
+  {label:'Title',       action:()=>showScreen('screen-title','screen-title')},
+  {label:'Who Am I',    action:()=>showScreen('screen-whoami','screen-whoami')},
+  {label:'Fearstorming',action:()=>showScreen('screen-feardef','screen-feardef')},
+  {label:'Landing',     action:()=>showScreen('screen-landing','screen-landing')},
+  {label:'Tutorial',    action:()=>goToTutorial()},
+  {label:'Pause',       action:()=>showScreen('screen-pause','screen-pause')},
+  {label:'Fearstorm 1', action:()=>showFearstorm(0)},
+  {label:'Fearstorm 2', action:()=>showFearstorm(1)},
+  {label:'Fearstorm 3', action:()=>showFearstorm(2)},
+  {label:'Q&A',         action:()=>showScreen('screen-qa','screen-qa')},
+  {label:'Thank You',   action:()=>showScreen('screen-thankyou','screen-thankyou')}
+];
+function buildDevNavs(){
+  ['devNav-title','devNav-whoami','devNav-feardef','devNav-landing',
+   'devNav-tutorial','devNav-pause','devNav-fs','devNav-qa','devNav-ty'].forEach(id=>{
+    const nav=document.getElementById(id); if(!nav) return;
+    nav.innerHTML='';
+    const badge=document.createElement('span');
+    badge.className='dev-badge'; badge.textContent='🧪 Test nav';
+    nav.appendChild(badge);
+    SCREENS.forEach(sc=>{
+      const btn=document.createElement('button');
+      btn.className='dev-btn'; btn.textContent=sc.label;
+      btn.onclick=sc.action; nav.appendChild(btn);
+    });
+  });
+}
+
+// =============================================
+// PICKERS
+// =============================================
+function buildColorGrid(){
+  const g=document.getElementById('colorGrid');
+  CONFIG.colors.forEach(c=>{
+    const d=document.createElement('div');
+    d.className='color-option'; d.dataset.id=c.id;
+    d.innerHTML=`<div class="color-swatch" style="background:${c.hex}"></div><span class="color-name">${c.label}</span>`;
+    d.onclick=()=>pickColor(c.id); g.appendChild(d);
+  });
+}
+function buildStampGrid(){
+  const g=document.getElementById('stampGrid');
+  CONFIG.stamps.forEach(s=>{
+    const d=document.createElement('div');
+    d.className='stamp-option'; d.dataset.id=s.id;
+    const prev=document.createElement('div'); prev.className='stamp-preview';
+    renderStamp(prev,s,38); d.appendChild(prev);
+    const lbl=document.createElement('span'); lbl.className='stamp-label'; lbl.textContent=s.label;
+    d.appendChild(lbl); d.onclick=()=>pickStamp(s.id); g.appendChild(d);
+  });
+}
+function pickColor(id){
+  S.color=CONFIG.colors.find(c=>c.id===id);
+  document.querySelectorAll('.color-option').forEach(e=>e.classList.toggle('selected',e.dataset.id===id));
+  updateToolIcons(); checkReady();
+}
+function pickStamp(id){
+  S.stamp=CONFIG.stamps.find(s=>s.id===id);
+  document.querySelectorAll('.stamp-option').forEach(e=>e.classList.toggle('selected',e.dataset.id===id));
+  updateToolIcons(); checkReady();
+}
+function checkReady(){document.getElementById('landingNextBtn').disabled=!(S.color&&S.stamp);}
+function updateToolIcons(){
+  const svg=S.color
+    ?`<svg viewBox="0 0 32 32" width="30" height="30" xmlns="http://www.w3.org/2000/svg">
+        <rect x="3" y="3" width="26" height="26" rx="2" fill="${S.color.hex}" stroke="${S.color.tabHex}" stroke-width="1.5"/>
+        <line x1="8" y1="10" x2="24" y2="10" stroke="${S.color.tabHex}" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="8" y1="15" x2="24" y2="15" stroke="${S.color.tabHex}" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="8" y1="20" x2="18" y2="20" stroke="${S.color.tabHex}" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>`
+    :`<svg viewBox="0 0 32 32" width="30" height="30" xmlns="http://www.w3.org/2000/svg">
+        <rect x="3" y="3" width="26" height="26" rx="2" fill="#eee" stroke="#ccc" stroke-width="1.5"/>
+        <line x1="8" y1="10" x2="24" y2="10" stroke="#ccc" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="8" y1="15" x2="24" y2="15" stroke="#ccc" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="8" y1="20" x2="18" y2="20" stroke="#ccc" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>`;
+  ['tutNoteIcon','fsNoteIcon'].forEach(id=>{const e=document.getElementById(id);if(e)e.innerHTML=svg;});
+  ['tutStampIcon','fsStampIcon'].forEach(id=>{const e=document.getElementById(id);if(e&&S.stamp)renderStamp(e,S.stamp,30);});
+}
+
+// =============================================
+// SCREEN NAV
+// =============================================
+function showScreen(id, dotKey){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if(dotKey) updateDots(dotKey);
+}
+function goToTutorial(){
+  showScreen('screen-tutorial','screen-tutorial');
+  updateToolIcons(); setTutPhase(0);
+}
+function showFearstorm(idx){
+  S.fsIdx=idx; S.activeTool=null;
+  _spotlitNoteId=null; // clear any spotlight when changing screens
+  setText('fsPromptText',CONFIG.prompts[idx]);
+  setText('fsIndicator',`${idx+1} of ${CONFIG.prompts.length}`);
+  setText('presFsLabel',`Fearstorm ${idx+1} of ${CONFIG.prompts.length}`);
+  setText('boardNumber',String(idx+1));
+  document.getElementById('fsAdvanceBtn').textContent=idx>=CONFIG.prompts.length-1?'Go to Q&A →':'Next prompt →';
+  renderFsBoard(idx);
+  showScreen('screen-fearstorm',`screen-fearstorm-${idx+1}`);
+  document.getElementById('fsToolNote').classList.remove('active');
+  document.getElementById('fsToolStamp').classList.remove('active');
+  setText('fsHint','Choose a tool to get started');
+  updateToolIcons();
+}
+function advanceFearstorm(){
+  if(S.fsIdx<CONFIG.prompts.length-1) showFearstorm(S.fsIdx+1);
+  else showScreen('screen-qa','screen-qa');
+}
+
+// =============================================
+// NOTE PLACEMENT
+// =============================================
+function placeNotes(notes,canvasW){
+  const{noteWidth:W,noteHeight:H,notePadding:P,noteMaxRotateDeg:R,noteOffsetJitter:J}=CONFIG;
+  const cols=Math.max(1,Math.floor((canvasW+P)/(W+P)));
+  notes.forEach((n,i)=>{
+    const col=i%cols,row=Math.floor(i/cols);
+    n.x=P+col*(W+P)+rand(-J,J);
+    n.y=P+row*(H+P)+rand(-J,J);
+    n.rot=rand(-R,R);
+  });
+}
+
+// =============================================
+// STICKY NOTE ELEMENT
+// =============================================
+function makeNoteEl(note,onStamp){
+  const el=document.createElement('div');
+  el.className='sticky'+(onStamp?' stampable':'');
+  el.id='note-'+note.id;
+  el.style.cssText=`background:${note.hex};left:${note.x}px;top:${note.y}px;transform:rotate(${note.rot}deg);`;
+  el.innerHTML=`<span class="sticky-text">${esc(note.text)}</span>
+    <div class="sticky-stamps" id="stamps-${note.id}"></div>`;
+  if(onStamp) el.addEventListener('click', e => {
+    // In presenter mode, spotlight the note instead of stamping
+    if(S.isPresenter){ toggleSpotlight(note.id); return; }
+    onStamp(note.id);
+  });
+  note.stamps.forEach(s=>addStampEl(note.id,s.stamp,s.rot,s.wobble));
+  return el;
+}
+function addStampEl(noteId,stamp,rot,wobble){
+  const c=document.getElementById('stamps-'+noteId); if(!c) return;
+  const r=rot!==undefined?rot:rand(-CONFIG.stampRotateMax,CONFIG.stampRotateMax);
+  const w=wobble!==undefined?wobble:rand(-CONFIG.stampWobbleMax,CONFIG.stampWobbleMax);
+  const sp=document.createElement('span');
+  sp.className='sticky-stamp-el';
+  sp.style.cssText=`--sr:${r}deg;transform:rotate(${r}deg);margin-top:${w}px;margin-bottom:${-w}px;`;
+  renderStamp(sp,stamp,20);
+  c.appendChild(sp);
+}
+function repositionExisting(notes){
+  notes.forEach(n=>{
+    const el=document.getElementById('note-'+n.id); if(!el) return;
+    el.style.left=n.x+'px'; el.style.top=n.y+'px';
+  });
+}
+
+// =============================================
+// TUTORIAL BOARD
+// =============================================
+function setTutPhase(phase){
+  S.tutPhase=phase;
+  const tip=document.getElementById('tutorialTip');
+  const noteBtn=document.getElementById('tutToolNote');
+  const stampBtn=document.getElementById('tutToolStamp');
+  tip.textContent=CONFIG.tutorial.tips[phase]||'';
+  tip.style.display=phase<=3?'block':'none';
+  hideArrow('arrowNote'); hideArrow('arrowStamp');
+  if(phase===0){
+    noteBtn.classList.add('active'); stampBtn.disabled=true; stampBtn.classList.remove('active');
+    setText('tutHint','Click the sticky note to write something');
+    showArrow('arrowNote');
+  } else if(phase===1){
+    setText('tutHint','Type your response and add it to the board');
+  } else if(phase===2){
+    stampBtn.disabled=false;
+    setText('tutHint','Select the stamper, then click on a note');
+    addExampleNote();
+    showArrow('arrowStamp');
+  } else if(phase===3){
+    setText('tutHint','Moving you over in just a moment…');
+    noteBtn.classList.remove('active'); stampBtn.classList.remove('active');
+    setTimeout(()=>showScreen('screen-pause','screen-pause'),CONFIG.tutorial.autoAdvanceDelay);
+    if(S.isPresenter) document.getElementById('presAdvanceTutorial').disabled=false;
+  }
+}
+function addExampleNote(){
+  const canvas=document.getElementById('tutorialCanvas');
+  if(document.getElementById('note-example')) return;
+  const note={id:'example',text:CONFIG.tutorial.exampleNoteText,hex:'#FFFFFF',stamps:[],x:0,y:0,rot:-1.5};
+  S.tutNotes.push(note);
+  placeNotes(S.tutNotes,canvas.offsetWidth||600);
+  repositionExisting(S.tutNotes);
+  const el=makeNoteEl(note,(id)=>tutStamp(id));
+  el.classList.add('example-note');
+  canvas.appendChild(el);
+}
+function tutSelectTool(tool){
+  S.activeTool=tool;
+  document.getElementById('tutToolNote').classList.toggle('active',tool==='note');
+  document.getElementById('tutToolStamp').classList.toggle('active',tool==='stamp');
+  if(tool==='note'){hideArrow('arrowNote');if(S.tutPhase<=1)openEditor(false);}
+  if(tool==='stamp'){hideArrow('arrowStamp');setText('tutHint','Click on the example note to stamp it');}
+}
+function tutStamp(noteId){
+  if(S.activeTool!=='stamp') return;
+  const note=S.tutNotes.find(n=>n.id===noteId); if(!note) return;
+  const rot=rand(-CONFIG.stampRotateMax,CONFIG.stampRotateMax);
+  const wobble=rand(-CONFIG.stampWobbleMax,CONFIG.stampWobbleMax);
+  note.stamps.push({stamp:S.stamp,rot,wobble});
+  addStampEl(noteId,S.stamp,rot,wobble);
+  showGoodJob();
+  setTimeout(()=>setTutPhase(3),1800);
+}
+
+// =============================================
+// SPOTLIGHT (presenter mode only)
+// =============================================
+let _spotlitNoteId = null;
+
+function toggleSpotlight(noteId){
+  // Remove existing spotlight
+  if(_spotlitNoteId){
+    const prev = document.getElementById('note-'+_spotlitNoteId);
+    if(prev) prev.classList.remove('spotlit');
+  }
+  // If clicking the same note, just remove spotlight
+  if(_spotlitNoteId === noteId){
+    _spotlitNoteId = null;
+    return;
+  }
+  // Apply spotlight to new note
+  const el = document.getElementById('note-'+noteId);
+  if(el){ el.classList.add('spotlit'); _spotlitNoteId = noteId; }
+}
+
+// =============================================
+// FEARSTORM BOARD
+// =============================================
+function renderFsBoard(idx){
+  const canvas=document.getElementById('fsCanvas');
+  Array.from(canvas.children).forEach(c=>{if(!c.classList.contains('board-number'))c.remove();});
+  const notes=S.fsNotes[idx];
+  placeNotes(notes,canvas.offsetWidth||600);
+  notes.forEach(n=>canvas.appendChild(makeNoteEl(n,(id)=>fsStamp(id))));
+}
+function fsClickNote(){
+  S.activeTool='note';
+  document.getElementById('fsToolNote').classList.add('active');
+  document.getElementById('fsToolStamp').classList.remove('active');
+  setText('fsHint','Type your response and add it to the board');
+  openEditor(true);
+}
+function fsSelectStamp(){
+  S.activeTool='stamp';
+  document.getElementById('fsToolNote').classList.remove('active');
+  document.getElementById('fsToolStamp').classList.add('active');
+  setText('fsHint','Click on any note to stamp it');
+}
+function fsStamp(noteId){
+  if(S.activeTool!=='stamp') return;
+  const note=S.fsNotes[S.fsIdx].find(n=>n.id===noteId); if(!note) return;
+  const rot=rand(-CONFIG.stampRotateMax,CONFIG.stampRotateMax);
+  const wobble=rand(-CONFIG.stampWobbleMax,CONFIG.stampWobbleMax);
+  note.stamps.push({stamp:S.stamp,rot,wobble});
+  addStampEl(noteId,S.stamp,rot,wobble);
+}
+
+// =============================================
+// NOTE EDITOR
+// =============================================
+let _isFearstorm=false;
+function openEditor(isFearstorm){
+  _isFearstorm=isFearstorm;
+  document.getElementById('noteTextarea').value='';
+  document.getElementById('noteColorBar').style.background=S.color?S.color.hex:'#FFE566';
+  document.getElementById('noteEditorOverlay').classList.add('open');
+  setTimeout(()=>document.getElementById('noteTextarea').focus(),50);
+  if(!isFearstorm&&S.tutPhase===0) setTutPhase(1);
+}
+function closeNoteEditor(){document.getElementById('noteEditorOverlay').classList.remove('open');}
+function addNoteToBoard(){
+  const text=document.getElementById('noteTextarea').value.trim(); if(!text) return;
+  if(!S.color){ closeNoteEditor(); return; } // guard: no color selected yet
+  const id='n'+Date.now();
+  const note={id,text,hex:S.color.hex,stamps:[],x:0,y:0,rot:0};
+  const canvasId=_isFearstorm?'fsCanvas':'tutorialCanvas';
+  const canvas=document.getElementById(canvasId);
+  const notes=_isFearstorm?S.fsNotes[S.fsIdx]:S.tutNotes;
+  notes.push(note);
+  placeNotes(notes,canvas.offsetWidth||600);
+  repositionExisting(notes);
+  const el=makeNoteEl(note,_isFearstorm?(nid)=>fsStamp(nid):(nid)=>tutStamp(nid));
+  canvas.appendChild(el);
+  closeNoteEditor();
+  if(!_isFearstorm){showGoodJob();setTimeout(()=>setTutPhase(2),1800);}
+}
+
+// =============================================
+// GOOD JOB TOAST
+// =============================================
+function showGoodJob(){
+  const t=document.getElementById('goodJobToast');
+  t.classList.remove('show'); void t.offsetWidth; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),1800);
+}
+
+init();
+</script>
+</body>
+</html>
