@@ -152,18 +152,10 @@ body{font-family:var(--font);background:var(--warm-bg);color:var(--warm-text);di
 .catchup-icon{font-size:2.2rem;margin-bottom:.75rem;}
 .catchup-title{font-size:1.2rem;font-weight:700;color:var(--warm-text);margin-bottom:.4rem;}
 .catchup-sub{font-size:.9rem;color:var(--warm-text-muted);line-height:1.6;}
-/* DEBUG — always visible in presenter mode */
-.debug-panel{position:fixed;bottom:0;left:0;right:0;background:#1e1b4b;color:#a5b4fc;font-family:monospace;font-size:.72rem;padding:.5rem .75rem;max-height:160px;overflow-y:auto;z-index:1000;border-top:2px solid #7C3AED;display:none;}
-.presenter-mode .debug-panel{display:block;}
-.debug-line{padding:.1rem 0;border-bottom:1px solid rgba(255,255,255,.05);}
-.debug-line.ok{color:#86efac;}
-.debug-line.err{color:#fca5a5;}
-.debug-line.info{color:#fde68a;}
 </style>
 </head>
 <body>
 
-<div class="debug-panel" id="debugPanel"></div>
 <div class="good-job-toast" id="goodJobToast">🎉 Good job!</div>
 <div class="landing-toast" id="landingToast">Great picks — let's put them to use!</div>
 <div class="catchup-overlay" id="catchupOverlay">
@@ -173,6 +165,7 @@ body{font-family:var(--font);background:var(--warm-bg);color:var(--warm-text);di
     <div class="catchup-sub">We're bringing you back into the session…</div>
   </div>
 </div>
+
 <div class="note-editor-overlay" id="noteEditorOverlay">
   <div class="note-editor">
     <div class="note-editor-label">Write your sticky note</div>
@@ -422,55 +415,43 @@ const POST_LANDING=new Set(['tutorial','pause','fearstorm0','fearstorm1','fearst
 
 const S={color:null,stamp:null,activeTool:null,tutPhase:0,fsIdx:0,isPresenter:false,tutNotes:[],fsNotes:CONFIG.prompts.map(()=>[]),landingComplete:false,pendingScreen:null};
 
-function dbg(msg,type='info'){
-  console.log(`[Fearstorm] ${msg}`);
-  const p=document.getElementById('debugPanel');if(!p)return;
-  const l=document.createElement('div');
-  l.className=`debug-line ${type}`;
-  l.textContent=`[${new Date().toLocaleTimeString()}] ${msg}`;
-  p.appendChild(l);p.scrollTop=p.scrollHeight;
-}
-
 const FB_CONFIG={apiKey:"AIzaSyAEtYZ2-cFiGqmgedbEmwvpaps6qI9c-_U",authDomain:"virtual-fearstorm.firebaseapp.com",databaseURL:"https://virtual-fearstorm-default-rtdb.firebaseio.com",projectId:"virtual-fearstorm",storageBucket:"virtual-fearstorm.firebasestorage.app",messagingSenderId:"193081397611",appId:"1:193081397611:web:8f3926a1047fa29680bc2e"};
 
 let db;
-try{db=getDatabase(initializeApp(FB_CONFIG));dbg('Firebase initialized','ok');}
-catch(e){dbg(`Firebase init failed: ${e.message}`,'err');}
+try{db=getDatabase(initializeApp(FB_CONFIG));}
+catch(e){console.error('Firebase init failed',e);}
 
 function fbSetScreen(key){
-  dbg(`Writing screen: ${key}`);
-  set(ref(db,'session/screen'),key)
-    .then(()=>dbg(`Write OK: ${key}`,'ok'))
-    .catch(e=>dbg(`Write failed: ${e.message}`,'err'));
+  set(ref(db,'session/screen'),key).catch(console.error);
 }
 
 function listenToSession(){
-  dbg(`Listener started — isPresenter:${S.isPresenter}`);
   if(S.isPresenter){
-    set(ref(db,'session/screen'),null)
-      .then(()=>dbg('Stale session cleared','ok'))
-      .catch(e=>dbg(`Clear failed: ${e.message}`,'err'));
-    onValue(ref(db,'session/screen'),snap=>{
-      dbg(`[Presenter sees] session/screen = ${JSON.stringify(snap.val())}`,'info');
-    });
+    set(ref(db,'session/screen'),null).catch(console.error);
     return;
   }
   onValue(ref(db,'session/screen'),snap=>{
     const key=snap.val();
-    dbg(`Snap: ${JSON.stringify(key)} | landingComplete:${S.landingComplete}`,'ok');
-    if(!key){dbg('Null — staying put');return;}
-    if(PRE_LANDING.has(key)){dbg(`Pre-landing (${key}) — following`);_applyRemoteScreen(key);return;}
-    if(key==='landing'){dbg('Landing signal — going to landing');_showScreenLocal('screen-landing');return;}
+    if(!key) return;
+    if(PRE_LANDING.has(key)){_applyRemoteScreen(key);return;}
+    if(key==='landing'){_showScreenLocal('screen-landing');return;}
     if(POST_LANDING.has(key)){
       if(!S.landingComplete){
         if(key.startsWith('fearstorm'))S.pendingScreen=key;
-        dbg(`Not ready — holding on landing (pending:${S.pendingScreen})`);
         _showScreenLocal('screen-landing');return;
       }
-      if(key==='tutorial'||key==='pause'){dbg(`${key} handled locally — ignoring`);return;}
-      dbg(`Applying: ${key}`);_applyRemoteScreen(key);
+      if(key==='tutorial'||key==='pause') return;
+      _applyRemoteScreen(key);
     }
-  },e=>dbg(`Listener error: ${e.message}`,'err'));
+  },console.error);
+}
+
+// ── STAMP FIX: normalise Firebase stamps regardless of array vs object format ──
+function normaliseStamps(raw){
+  if(!raw) return [];
+  // Firebase may return an array or a keyed object — handle both
+  const entries = Array.isArray(raw) ? raw : Object.values(raw);
+  return entries.filter(Boolean);
 }
 
 const _fsListeningTo=new Set();
@@ -481,32 +462,47 @@ function startListeningToFearstorm(idx){
     const data=snap.val()||{};
     Object.keys(data).forEach(fbKey=>{
       const d=data[fbKey];if(!d)return;
+      const rawStamps = normaliseStamps(d.stamps);
       const exists=S.fsNotes[idx].find(n=>n.id===fbKey);
       if(!exists){
-        const note={id:fbKey,text:d.text,hex:d.hex,stamps:d.stamps||[],x:d.x||0,y:d.y||0,rot:d.rot||0};
+        // Build stamps array from Firebase data immediately
+        const stamps = rawStamps.map(s=>{
+          const stampObj=CONFIG.stamps.find(x=>x.id===s.stampId);
+          return stampObj ? {stamp:stampObj,rot:s.rot,wobble:s.wobble} : null;
+        }).filter(Boolean);
+        const note={id:fbKey,text:d.text,hex:d.hex,stamps,x:d.x||0,y:d.y||0,rot:d.rot||0};
         S.fsNotes[idx].push(note);
         if(S.fsIdx===idx){
           const canvas=document.getElementById('fsCanvas');
           placeNotes(S.fsNotes[idx],canvas.offsetWidth||600);
           repositionExisting(S.fsNotes[idx]);
-          if(!document.getElementById('note-'+fbKey))canvas.appendChild(makeNoteEl(note,id=>fsStamp(id)));
+          if(!document.getElementById('note-'+fbKey))
+            canvas.appendChild(makeNoteEl(note,id=>fsStamp(id)));
         }
       } else {
-        const rs=d.stamps||[],ls=exists.stamps||[];
-        if(rs.length>ls.length)rs.slice(ls.length).forEach(s=>{
-          const st=CONFIG.stamps.find(x=>x.id===s.stampId);if(!st)return;
-          exists.stamps.push({stamp:st,rot:s.rot,wobble:s.wobble});addStampEl(fbKey,st,s.rot,s.wobble);
-        });
+        // Sync any stamps added since we last saw this note
+        const localCount=exists.stamps.length;
+        if(rawStamps.length>localCount){
+          rawStamps.slice(localCount).forEach(s=>{
+            const st=CONFIG.stamps.find(x=>x.id===s.stampId);if(!st)return;
+            exists.stamps.push({stamp:st,rot:s.rot,wobble:s.wobble});
+            addStampEl(fbKey,st,s.rot,s.wobble);
+          });
+        }
       }
     });
     const dot=document.getElementById('syncDot');if(dot)dot.className='sync-dot connected';
-  },e=>{dbg(`Notes error: ${e.message}`,'err');const dot=document.getElementById('syncDot');if(dot)dot.className='sync-dot error';});
+  },e=>{console.error(e);const dot=document.getElementById('syncDot');if(dot)dot.className='sync-dot error';});
 }
 
-function fbPushNote(idx,note){update(ref(db,`fearstorm/prompt_${idx}/notes/${note.id}`),{text:note.text,hex:note.hex,stamps:[],x:note.x,y:note.y,rot:note.rot,ts:serverTimestamp()}).catch(console.error);}
+function fbPushNote(idx,note){
+  update(ref(db,`fearstorm/prompt_${idx}/notes/${note.id}`),
+    {text:note.text,hex:note.hex,stamps:[],x:note.x,y:note.y,rot:note.rot,ts:serverTimestamp()}).catch(console.error);
+}
 function fbPushStamp(idx,noteId,stampData){
   const note=S.fsNotes[idx].find(n=>n.id===noteId);if(!note)return;
-  const i=note.stamps.length-1;const u={};u[`stamps/${i}`]={stampId:stampData.stamp.id,rot:stampData.rot,wobble:stampData.wobble};
+  const i=note.stamps.length-1;
+  const u={};u[`stamps/${i}`]={stampId:stampData.stamp.id,rot:stampData.rot,wobble:stampData.wobble};
   update(ref(db,`fearstorm/prompt_${idx}/notes/${noteId}`),u).catch(console.error);
 }
 
