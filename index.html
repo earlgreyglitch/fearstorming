@@ -550,10 +550,22 @@ function fbSetScreen(screenKey){
 // --- All clients: listen for screen changes ---
 function listenToSession(){
   dbg(`Starting session listener (isPresenter=${S.isPresenter})`);
+
+  // Presenter clears stale session on load so participants start fresh
+  if(S.isPresenter){
+    set(ref(db,'session/screen'), null)
+      .then(()=> dbg('Session cleared on presenter load', 'ok'))
+      .catch(e => dbg(`Session clear failed: ${e.message}`, 'err'));
+  }
+
+  // Skip the very first snapshot — it may be a stale value from a prior session
+  let firstSnap = true;
   onValue(ref(db,'session/screen'), snap => {
+    if(firstSnap){ firstSnap = false; dbg('Initial snapshot skipped (stale guard)'); return; }
+
     const key = snap.val();
     dbg(`Session snap received: ${JSON.stringify(key)}`, 'ok');
-    if(!key) { dbg('No screen key in snapshot'); return; }
+    if(!key) { dbg('Screen key is null — session was cleared or not yet set'); return; }
     if(S.isPresenter) { dbg('Presenter ignoring incoming sync'); return; }
 
     const def = SYNC_SCREENS[key];
@@ -561,12 +573,10 @@ function listenToSession(){
 
     if(!S.landingComplete){
       if(PRE_LANDING_KEYS.has(key)){
-        // Presenter is still on intro slides — participant follows normally, no landing needed
         dbg(`Pre-landing screen ${key} — following presenter directly`);
         _applyRemoteScreen(key);
         return;
       }
-      // Presenter has passed landing — participant must pick color/stamp first
       if(key.startsWith('fearstorm')) S.pendingScreen = key;
       dbg(`Landing not complete — queuing ${key}, holding on landing`);
       _showScreenLocal('screen-landing');
