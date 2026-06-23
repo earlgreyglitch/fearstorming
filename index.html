@@ -49,12 +49,12 @@ body{font-family:var(--font);background:var(--warm-bg);color:var(--warm-text);di
 .fear-adds ul{list-style:none;display:flex;flex-direction:column;gap:.35rem;}
 .fear-adds li{font-size:.88rem;color:var(--warm-text);padding-left:1.2rem;position:relative;line-height:1.5;}
 .fear-adds li::before{content:'→';position:absolute;left:0;color:var(--warm-accent);font-size:.8rem;}
-.intro-nav{background:var(--warm-surface);border-top:1px solid var(--warm-border);padding:.65rem 1.25rem;display:flex;align-items:center;justify-content:flex-end;gap:.75rem;flex-shrink:0;}
+
+/* Dot indicators — no nav buttons for participants */
+.intro-nav{background:var(--warm-surface);border-top:1px solid var(--warm-border);padding:.65rem 1.25rem;display:flex;align-items:center;flex-shrink:0;}
 .intro-dots{display:flex;gap:.35rem;flex:1;align-items:center;flex-wrap:wrap;}
 .intro-dot{width:7px;height:7px;border-radius:50%;background:var(--warm-border);flex-shrink:0;}
 .intro-dot.active{background:var(--warm-accent);}
-.intro-nav-btn{display:none;}
-.presenter-mode .intro-nav-btn{display:inline-flex;}
 
 /* BUTTONS */
 .btn-primary{background:var(--warm-accent);color:#fff;border:none;padding:.85rem 2.5rem;border-radius:999px;font-size:1rem;font-weight:700;cursor:pointer;transition:opacity .15s,transform .1s;font-family:var(--font);display:inline-flex;align-items:center;}
@@ -127,15 +127,11 @@ body{font-family:var(--font);background:var(--warm-bg);color:var(--warm-text);di
 .note-editor-pad{width:100%;min-height:130px;border-radius:var(--radius-sm);border:2px solid var(--warm-border);padding:.7rem;font-family:var(--font);font-size:15px;line-height:1.6;color:var(--warm-text);resize:none;outline:none;transition:border-color .15s;margin-bottom:1rem;}
 .note-editor-pad:focus{border-color:var(--warm-accent);}
 .note-editor-actions{display:flex;gap:.75rem;justify-content:flex-end;}
-
-/* INSTRUCTION TIP */
 .instruction-tip{position:absolute;background:var(--warm-text);color:#fff;padding:.55rem .9rem;border-radius:var(--radius-sm);font-size:.82rem;max-width:260px;line-height:1.45;z-index:15;pointer-events:none;}
 
-/* TOAST (landing auto-advance) */
+/* TOASTS */
 .landing-toast{position:fixed;bottom:2rem;left:50%;transform:translateX(-50%) translateY(30px);background:var(--warm-accent);color:#fff;padding:.85rem 2rem;border-radius:999px;font-size:1rem;font-weight:700;z-index:300;pointer-events:none;opacity:0;transition:opacity .3s,transform .3s;}
 .landing-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
-
-/* GOOD JOB TOAST */
 .good-job-toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);background:var(--warm-accent);color:#fff;padding:1rem 2.25rem;border-radius:999px;font-size:1.4rem;font-weight:700;z-index:300;pointer-events:none;}
 .good-job-toast.show{animation:toastPop 1.7s cubic-bezier(.34,1.56,.64,1) forwards;}
 @keyframes toastPop{0%{transform:translate(-50%,-50%) scale(0);opacity:0;}25%{transform:translate(-50%,-50%) scale(1.08);opacity:1;}70%{transform:translate(-50%,-50%) scale(1);opacity:1;}100%{transform:translate(-50%,-50%) scale(.8);opacity:0;}}
@@ -174,16 +170,33 @@ body{font-family:var(--font);background:var(--warm-bg);color:var(--warm-text);di
 .contact-link{font-size:.9rem;color:var(--warm-accent);text-decoration:none;}
 .contact-link:hover{text-decoration:underline;}
 
-/* Firebase status indicator */
-.sync-dot{width:7px;height:7px;border-radius:50%;background:#ccc;display:inline-block;margin-right:.4rem;}
+/* Sync status */
+.sync-dot{width:7px;height:7px;border-radius:50%;background:#ccc;display:inline-block;margin-right:.4rem;flex-shrink:0;}
 .sync-dot.connected{background:#22C55E;}
 .sync-dot.error{background:#EF4444;}
+
+/* Catching-up overlay */
+.catchup-overlay{display:none;position:fixed;inset:0;background:rgba(61,43,31,.6);z-index:500;align-items:center;justify-content:center;}
+.catchup-overlay.visible{display:flex;}
+.catchup-box{background:var(--warm-surface);border-radius:var(--radius);padding:2rem 2.5rem;text-align:center;max-width:340px;}
+.catchup-icon{font-size:2.2rem;margin-bottom:.75rem;}
+.catchup-title{font-size:1.2rem;font-weight:700;color:var(--warm-text);margin-bottom:.4rem;}
+.catchup-sub{font-size:.9rem;color:var(--warm-text-muted);line-height:1.6;}
 </style>
 </head>
 <body>
 
 <div class="good-job-toast" id="goodJobToast">🎉 Good job!</div>
 <div class="landing-toast" id="landingToast">Great picks — let's put them to use!</div>
+
+<!-- Catching-up overlay (shown while rejoining participant catches up) -->
+<div class="catchup-overlay" id="catchupOverlay">
+  <div class="catchup-box">
+    <div class="catchup-icon">⏳</div>
+    <div class="catchup-title">Hang tight!</div>
+    <div class="catchup-sub">We're bringing you back into the session…</div>
+  </div>
+</div>
 
 <!-- NOTE EDITOR -->
 <div class="note-editor-overlay" id="noteEditorOverlay">
@@ -203,7 +216,7 @@ body{font-family:var(--font);background:var(--warm-bg);color:var(--warm-text);di
   <div class="presenter-bar" id="presBar-title" style="display:none;">
     <span class="presenter-badge">Presenter</span>
     <span class="presenter-label">Title slide</span>
-    <button class="btn-presenter" onclick="showScreen('screen-whoami')">Next →</button>
+    <button class="btn-presenter" onclick="presNav('screen-whoami')">Next →</button>
   </div>
   <div class="intro-slide" style="flex:1;">
     <div class="intro-slide-inner">
@@ -218,7 +231,6 @@ body{font-family:var(--font);background:var(--warm-bg);color:var(--warm-text);di
   </div>
   <div class="intro-nav">
     <div class="intro-dots" id="dots-title"></div>
-    <button class="btn-primary sm intro-nav-btn" onclick="showScreen('screen-whoami')">Next →</button>
   </div>
 </div>
 
@@ -227,7 +239,8 @@ body{font-family:var(--font);background:var(--warm-bg);color:var(--warm-text);di
   <div class="presenter-bar" id="presBar-whoami" style="display:none;">
     <span class="presenter-badge">Presenter</span>
     <span class="presenter-label">Who Am I slide</span>
-    <button class="btn-presenter" onclick="showScreen('screen-feardef')">Next →</button>
+    <button class="btn-presenter" onclick="presNav('screen-feardef')">← Back</button>
+    <button class="btn-presenter" onclick="presNav('screen-feardef')">Next →</button>
   </div>
   <div class="intro-slide" style="flex:1;">
     <div class="intro-slide-inner">
@@ -251,8 +264,6 @@ body{font-family:var(--font);background:var(--warm-bg);color:var(--warm-text);di
   </div>
   <div class="intro-nav">
     <div class="intro-dots" id="dots-whoami"></div>
-    <button class="btn-secondary sm intro-nav-btn" onclick="showScreen('screen-title')">← Back</button>
-    <button class="btn-primary sm intro-nav-btn" onclick="showScreen('screen-feardef')">Next →</button>
   </div>
 </div>
 
@@ -261,7 +272,8 @@ body{font-family:var(--font);background:var(--warm-bg);color:var(--warm-text);di
   <div class="presenter-bar" id="presBar-feardef" style="display:none;">
     <span class="presenter-badge">Presenter</span>
     <span class="presenter-label">What is Fearstorming slide</span>
-    <button class="btn-presenter" onclick="showScreen('screen-landing')">Go to activity →</button>
+    <button class="btn-presenter" onclick="presNav('screen-whoami')">← Back</button>
+    <button class="btn-presenter" onclick="presNav('screen-landing')">Go to activity →</button>
   </div>
   <div class="intro-slide" style="flex:1;justify-content:flex-start;padding-top:2rem;overflow-y:auto;">
     <div class="intro-slide-inner" style="text-align:left;">
@@ -275,8 +287,6 @@ body{font-family:var(--font);background:var(--warm-bg);color:var(--warm-text);di
   </div>
   <div class="intro-nav">
     <div class="intro-dots" id="dots-feardef"></div>
-    <button class="btn-secondary sm intro-nav-btn" onclick="showScreen('screen-whoami')">← Back</button>
-    <button class="btn-primary sm intro-nav-btn" onclick="showScreen('screen-landing')">Let's begin →</button>
   </div>
 </div>
 
@@ -297,7 +307,7 @@ body{font-family:var(--font);background:var(--warm-bg);color:var(--warm-text);di
   <div class="presenter-bar" id="presBar-tutorial" style="display:none;">
     <span class="presenter-badge">Presenter</span>
     <span class="presenter-label">Tutorial screen</span>
-    <button class="btn-presenter" id="presAdvanceTutorial" onclick="showScreen('screen-pause')" disabled>Move to pause →</button>
+    <button class="btn-presenter" id="presAdvanceTutorial" onclick="presNav('screen-pause')" disabled>Move to pause →</button>
   </div>
   <div class="board-header">
     <span class="board-title">Tutorial</span>
@@ -330,7 +340,7 @@ body{font-family:var(--font);background:var(--warm-bg);color:var(--warm-text);di
   <div class="presenter-bar" id="presBar-pause" style="display:none;">
     <span class="presenter-badge">Presenter</span>
     <span class="presenter-label">Pause — participants are waiting</span>
-    <button class="btn-presenter" onclick="showFearstorm(0)">Start Fearstorm 1 →</button>
+    <button class="btn-presenter" onclick="presStartFearstorm(0)">Start Fearstorm 1 →</button>
   </div>
   <div class="simple-inner">
     <div class="simple-icon">☕</div>
@@ -345,7 +355,7 @@ body{font-family:var(--font);background:var(--warm-bg);color:var(--warm-text);di
     <span class="presenter-badge">Presenter</span>
     <span class="presenter-label" id="presFsLabel">Fearstorm 1 of 3</span>
     <span class="sync-dot" id="syncDot" title="Firebase sync"></span>
-    <button class="btn-presenter" id="fsAdvanceBtn" onclick="advanceFearstorm()">Next prompt →</button>
+    <button class="btn-presenter" id="fsAdvanceBtn" onclick="presAdvanceFearstorm()">Next prompt →</button>
   </div>
   <div class="board-header">
     <span class="board-title">Brewing Up a Fearstorm</span>
@@ -376,7 +386,7 @@ body{font-family:var(--font);background:var(--warm-bg);color:var(--warm-text);di
   <div class="presenter-bar" id="presBar-qa" style="display:none;">
     <span class="presenter-badge">Presenter</span>
     <span class="presenter-label">Q&A screen</span>
-    <button class="btn-presenter" onclick="showScreen('screen-thankyou')">Go to Thank You →</button>
+    <button class="btn-presenter" onclick="presNav('screen-thankyou')">Go to Thank You →</button>
   </div>
   <div class="simple-inner">
     <h2 class="qa-title-large" id="qaTitle"></h2>
@@ -407,10 +417,9 @@ body{font-family:var(--font);background:var(--warm-bg);color:var(--warm-text);di
   </div>
 </div>
 
-<!-- Firebase SDK -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getDatabase, ref, push, onValue, update, serverTimestamp }
+import { getDatabase, ref, push, onValue, update, set, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 // =============================================
@@ -418,38 +427,11 @@ import { getDatabase, ref, push, onValue, update, serverTimestamp }
 // =============================================
 const CONFIG = {
   slides:{
-    title:{
-      eyebrow:"NYPL Staff Talk",
-      main:"Professionally Uncertain",
-      sub:"Using Fearstorming to Build Confidence",
-      presenterName:"Payton D. Cooke",
-      meta:"Engagement and Instruction Librarian · CT State – Manchester",
-      date:"June 26, 2026"
-    },
-    whoami:{
-      heading:"Who Am I?",
-      name:"Payton D. Cooke",
-      pronouns:"(she/her)",
-      photo:"PASTE_BASE64_HERE",
-      degrees:["MA – Literary Studies","MS – Library and Information Science"],
-      roleTitle:"Engagement and Instruction Librarian",
-      roleOrg:"@ CT State – Manchester",
-      funfact:"Fun fact: This is my first time ever visiting the New York Public Library!"
-    },
-    feardef:{
-      heading:"What is Fearstorming?",
-      body:[
-        "Fear is a basic human emotion — one that shows up at work as nervousness, uncertainty, or anxiety.",
-        "Fearstorming is a collaborative approach that takes fear as the starting point for confidence — not the opposition. Rooted in Rogers' theory of facilitation and adapted from brainstorming, it invites open, nonevaluative expression of the moments that catch us off guard."
-      ],
-      addsLabel:"Today's adaptation adds:",
-      adds:["Peer validation","Facilitated reflection","A shared foundation for trust and learning"]
-    }
+    title:{eyebrow:"NYPL Staff Talk",main:"Professionally Uncertain",sub:"Using Fearstorming to Build Confidence",presenterName:"Payton D. Cooke",meta:"Engagement and Instruction Librarian · CT State – Manchester",date:"June 26, 2026"},
+    whoami:{heading:"Who Am I?",name:"Payton D. Cooke",pronouns:"(she/her)",photo:"PASTE_BASE64_HERE",degrees:["MA – Literary Studies","MS – Library and Information Science"],roleTitle:"Engagement and Instruction Librarian",roleOrg:"@ CT State – Manchester",funfact:"Fun fact: This is my first time ever visiting the New York Public Library!"},
+    feardef:{heading:"What is Fearstorming?",body:["Fear is a basic human emotion — one that shows up at work as nervousness, uncertainty, or anxiety.","Fearstorming is a collaborative approach that takes fear as the starting point for confidence — not the opposition. Rooted in Rogers' theory of facilitation and adapted from brainstorming, it invites open, nonevaluative expression of the moments that catch us off guard."],addsLabel:"Today's adaptation adds:",adds:["Peer validation","Facilitated reflection","A shared foundation for trust and learning"]}
   },
-  landing:{
-    title:"The Calm Before the Fearstorm",
-    subtitle:"Welcome! In the following activities, you'll share the moments that you feel uncertain or anxious in your work — then work collaboratively to find ways to work with or through these fears. Before we begin, pick a color for your sticky notes and a stamp that feels right."
-  },
+  landing:{title:"The Calm Before the Fearstorm",subtitle:"Welcome! In the following activities, you'll share the moments that you feel uncertain or anxious in your work — then work collaboratively to find ways to work with or through these fears. Before we begin, pick a color for your sticky notes and a stamp that feels right."},
   colors:[
     {id:"yellow",  label:"Sunflower",hex:"#FFE566",tabHex:"#E8C800"},
     {id:"peach",   label:"Peach",    hex:"#FFB899",tabHex:"#E07850"},
@@ -459,26 +441,12 @@ const CONFIG = {
     {id:"rose",    label:"Rose",     hex:"#FFBDCC",tabHex:"#E07090"}
   ],
   stamps:[
-    {id:"check",label:"Check",
-     svg:`<svg viewBox="0 0 40 40" width="36" height="36" xmlns="http://www.w3.org/2000/svg"><circle cx="20" cy="20" r="17" fill="#22C55E" stroke="white" stroke-width="3.5"/><polyline points="12,20 17,26 28,14" fill="none" stroke="white" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`},
-    {id:"plus1",label:"+1",
-     svg:`<svg viewBox="0 0 40 40" width="36" height="36" xmlns="http://www.w3.org/2000/svg"><text x="20" y="31" text-anchor="middle" font-family="'Segoe UI',Arial Black,sans-serif" font-weight="900" font-size="30" stroke="white" stroke-width="6" stroke-linejoin="round" paint-order="stroke" fill="#7C3AED">+1</text></svg>`},
-    {id:"heart",label:"Heart",
-     svg:`<svg viewBox="0 0 40 40" width="36" height="36" xmlns="http://www.w3.org/2000/svg"><path d="M20 34 C20 34 4 23 4 12.5 C4 7.5 8 3.5 13.5 4.5 C16.5 5 19 7.5 20 9.5 C21 7.5 23.5 5 26.5 4.5 C32 3.5 36 7.5 36 12.5 C36 23 20 34 20 34Z" fill="#EF4444" stroke="white" stroke-width="3.5" stroke-linejoin="round"/></svg>`},
-    {id:"star", label:"Star",
-     svg:`<svg viewBox="0 0 40 40" width="36" height="36" xmlns="http://www.w3.org/2000/svg"><polygon points="20,3 24.5,15 38,15 27,23 31,35 20,27.5 9,35 13,23 2,15 15.5,15" fill="#FACC15" stroke="white" stroke-width="2" stroke-linejoin="round"/></svg>`}
+    {id:"check",label:"Check",svg:`<svg viewBox="0 0 40 40" width="36" height="36" xmlns="http://www.w3.org/2000/svg"><circle cx="20" cy="20" r="17" fill="#22C55E" stroke="white" stroke-width="3.5"/><polyline points="12,20 17,26 28,14" fill="none" stroke="white" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`},
+    {id:"plus1",label:"+1",svg:`<svg viewBox="0 0 40 40" width="36" height="36" xmlns="http://www.w3.org/2000/svg"><text x="20" y="31" text-anchor="middle" font-family="'Segoe UI',Arial Black,sans-serif" font-weight="900" font-size="30" stroke="white" stroke-width="6" stroke-linejoin="round" paint-order="stroke" fill="#7C3AED">+1</text></svg>`},
+    {id:"heart",label:"Heart",svg:`<svg viewBox="0 0 40 40" width="36" height="36" xmlns="http://www.w3.org/2000/svg"><path d="M20 34 C20 34 4 23 4 12.5 C4 7.5 8 3.5 13.5 4.5 C16.5 5 19 7.5 20 9.5 C21 7.5 23.5 5 26.5 4.5 C32 3.5 36 7.5 36 12.5 C36 23 20 34 20 34Z" fill="#EF4444" stroke="white" stroke-width="3.5" stroke-linejoin="round"/></svg>`},
+    {id:"star", label:"Star", svg:`<svg viewBox="0 0 40 40" width="36" height="36" xmlns="http://www.w3.org/2000/svg"><polygon points="20,3 24.5,15 38,15 27,23 31,35 20,27.5 9,35 13,23 2,15 15.5,15" fill="#FACC15" stroke="white" stroke-width="2" stroke-linejoin="round"/></svg>`}
   ],
-  tutorial:{
-    promptText:"Before we dive in — click the sticky note tool and share how you're feeling right now. There are no wrong answers.",
-    tips:[
-      "👆 Click the sticky note in the toolbar to open it",
-      "✏️ Type your response, then click \"Add to fearstorm\"",
-      "🎉 Now select the stamper and click on the example note below",
-      "🕐 Great work! Moving you over in just a moment…"
-    ],
-    exampleNoteText:"Nervous, but excited!",
-    autoAdvanceDelay:2800
-  },
+  tutorial:{promptText:"Before we dive in — click the sticky note tool and share how you're feeling right now. There are no wrong answers.",tips:["👆 Click the sticky note in the toolbar to open it","✏️ Type your response, then click \"Add to fearstorm\"","🎉 Now select the stamper and click on the example note below","🕐 Great work! Moving you over in just a moment…"],exampleNoteText:"Nervous, but excited!",autoAdvanceDelay:2800},
   pause:{title:"You're all set!",subtitle:"Nice work on the tutorial. Sit tight — your facilitator will kick off the fearstorm shortly."},
   prompts:[
     "A patron approaches the desk with a question that falls outside of your expertise. Although their question appears simple to ask it requires a more nuanced answer. The patron is not local and will not be able to return at another time.",
@@ -488,8 +456,22 @@ const CONFIG = {
   qa:{title:"Questions & Thoughts",stickyText:"Follow-up questions?\nSend them my way!"},
   thankyou:{title:"Thank you 💛",subtitle:"Your honesty and openness made this fearstorm possible. These conversations matter — and so do you."},
   contact:{name:"Payton D. Cooke",role:"Engagement and Instruction Librarian",org:"CT State Community College – Manchester",email:"payton.cooke@ctstate.edu",linkedinHandle:"14pcooke"},
-  noteWidth:148,noteHeight:124,notePadding:16,noteMaxRotateDeg:2.5,noteOffsetJitter:5,
-  stampRotateMax:14,stampWobbleMax:5
+  noteWidth:148,noteHeight:124,notePadding:16,noteMaxRotateDeg:2.5,noteOffsetJitter:5,stampRotateMax:14,stampWobbleMax:5
+};
+
+// Screens that participants follow in sync (landing is intentionally excluded)
+// Maps Firebase screenKey → {htmlId, dotKey}
+const SYNC_SCREENS = {
+  'title':      {htmlId:'screen-title',     dotKey:'screen-title'},
+  'whoami':     {htmlId:'screen-whoami',    dotKey:'screen-whoami'},
+  'feardef':    {htmlId:'screen-feardef',   dotKey:'screen-feardef'},
+  'tutorial':   {htmlId:'screen-tutorial',  dotKey:'screen-tutorial'},
+  'pause':      {htmlId:'screen-pause',     dotKey:'screen-pause'},
+  'fearstorm0': {htmlId:'screen-fearstorm', dotKey:'screen-fearstorm-1'},
+  'fearstorm1': {htmlId:'screen-fearstorm', dotKey:'screen-fearstorm-2'},
+  'fearstorm2': {htmlId:'screen-fearstorm', dotKey:'screen-fearstorm-3'},
+  'qa':         {htmlId:'screen-qa',        dotKey:'screen-qa'},
+  'thankyou':   {htmlId:'screen-thankyou',  dotKey:'screen-thankyou'},
 };
 
 const SCREEN_ORDER=['screen-title','screen-whoami','screen-feardef','screen-landing','screen-tutorial','screen-pause','screen-fearstorm-1','screen-fearstorm-2','screen-fearstorm-3','screen-qa','screen-thankyou'];
@@ -498,12 +480,19 @@ const DOT_CONTAINERS=['dots-title','dots-whoami','dots-feardef'];
 // =============================================
 // STATE
 // =============================================
-const S={color:null,stamp:null,activeTool:null,tutPhase:0,fsIdx:0,isPresenter:false,tutNotes:[],fsNotes:CONFIG.prompts.map(()=>[]),currentScreenKey:'screen-title'};
+const S={
+  color:null,stamp:null,activeTool:null,tutPhase:0,fsIdx:0,isPresenter:false,
+  tutNotes:[],fsNotes:CONFIG.prompts.map(()=>[]),
+  // Tracks whether participant has completed landing — safe to follow sync
+  landingComplete:false,
+  // Pending screen to jump to after landing completes (for rejoin flow)
+  pendingScreen:null,
+};
 
 // =============================================
-// FIREBASE SETUP
+// FIREBASE
 // =============================================
-const firebaseConfig={
+const FB_CONFIG={
   apiKey:"AIzaSyAEtYZ2-cFiGqmgedbEmwvpaps6qI9c-_U",
   authDomain:"virtual-fearstorm.firebaseapp.com",
   databaseURL:"https://virtual-fearstorm-default-rtdb.firebaseio.com",
@@ -512,29 +501,72 @@ const firebaseConfig={
   messagingSenderId:"193081397611",
   appId:"1:193081397611:web:8f3926a1047fa29680bc2e"
 };
-const app = initializeApp(firebaseConfig);
-const db  = getDatabase(app);
+const fbApp = initializeApp(FB_CONFIG);
+const db    = getDatabase(fbApp);
 
-// One listener per fearstorm prompt so we don't re-register on screen switches
-const _fsListeners = {}; // idx -> unsubscribe fn (not needed for onValue, tracked via flag)
+// --- Session state ref (presenter writes, participants read) ---
+const sessionRef = ref(db, 'session');
+
+// --- Presenter: write current screen key to Firebase ---
+function fbSetScreen(screenKey){
+  set(ref(db,'session/screen'), screenKey).catch(console.error);
+}
+
+// --- All clients: listen for screen changes ---
+function listenToSession(){
+  onValue(ref(db,'session/screen'), snap => {
+    const key = snap.val();
+    if(!key) return;
+    if(S.isPresenter) return; // presenter drives, never follows
+
+    const def = SYNC_SCREENS[key];
+    if(!def) return;
+
+    // If participant hasn't finished landing yet, queue the destination
+    if(!S.landingComplete){
+      // Fearstorm screens get queued so rejoin works
+      if(key.startsWith('fearstorm')){
+        S.pendingScreen = key;
+      }
+      // Always make sure participant is on landing if not complete
+      _showScreenLocal('screen-landing');
+      return;
+    }
+
+    // Participant is ready — navigate them
+    _applyRemoteScreen(key);
+  });
+}
+
+function _applyRemoteScreen(key){
+  const def = SYNC_SCREENS[key];
+  if(!def) return;
+
+  if(key.startsWith('fearstorm')){
+    const idx = parseInt(key.replace('fearstorm',''));
+    _showFearstormLocal(idx);
+  } else if(key === 'tutorial'){
+    _showScreenLocal('screen-tutorial');
+    updateToolIcons();
+    setTutPhase(0);
+  } else {
+    _showScreenLocal(def.htmlId, def.dotKey);
+  }
+}
+
+// --- Notes sync ---
 const _fsListeningTo = new Set();
-
-function fbNotesRef(idx){ return ref(db, `fearstorm/prompt_${idx}/notes`); }
+function fbNotesRef(idx){ return ref(db,`fearstorm/prompt_${idx}/notes`); }
 
 function startListeningToFearstorm(idx){
   if(_fsListeningTo.has(idx)) return;
   _fsListeningTo.add(idx);
   onValue(fbNotesRef(idx), snap => {
-    const data = snap.val() || {};
-    // Merge remote notes into local array, preserving positions
-    const remoteIds = Object.keys(data);
-    const localIds  = S.fsNotes[idx].map(n=>n.id);
-    remoteIds.forEach(fbKey => {
-      const d = data[fbKey];
-      if(!d) return;
-      const exists = S.fsNotes[idx].find(n=>n.id===fbKey);
+    const data = snap.val()||{};
+    Object.keys(data).forEach(fbKey=>{
+      const d=data[fbKey]; if(!d) return;
+      const exists=S.fsNotes[idx].find(n=>n.id===fbKey);
       if(!exists){
-        // New note from another user
         const note={id:fbKey,text:d.text,hex:d.hex,stamps:d.stamps||[],x:d.x||0,y:d.y||0,rot:d.rot||0};
         S.fsNotes[idx].push(note);
         if(S.fsIdx===idx){
@@ -542,15 +574,13 @@ function startListeningToFearstorm(idx){
           placeNotes(S.fsNotes[idx],canvas.offsetWidth||600);
           repositionExisting(S.fsNotes[idx]);
           if(!document.getElementById('note-'+fbKey))
-            canvas.appendChild(makeNoteEl(note,(id)=>fsStamp(id,true)));
+            canvas.appendChild(makeNoteEl(note,(id)=>fsStamp(id)));
         }
       } else {
-        // Sync stamps that may have been added remotely
-        const remoteStamps = d.stamps||[];
-        const localStamps  = exists.stamps||[];
-        if(remoteStamps.length > localStamps.length){
-          const newStamps = remoteStamps.slice(localStamps.length);
-          newStamps.forEach(s=>{
+        const remoteStamps=d.stamps||[];
+        const localStamps=exists.stamps||[];
+        if(remoteStamps.length>localStamps.length){
+          remoteStamps.slice(localStamps.length).forEach(s=>{
             const stampObj=CONFIG.stamps.find(st=>st.id===s.stampId);
             if(!stampObj) return;
             exists.stamps.push({stamp:stampObj,rot:s.rot,wobble:s.wobble});
@@ -559,33 +589,25 @@ function startListeningToFearstorm(idx){
         }
       }
     });
-    // Update sync dot
     const dot=document.getElementById('syncDot');
     if(dot) dot.className='sync-dot connected';
   }, err=>{
-    console.error('Firebase error',err);
+    console.error('Firebase notes error',err);
     const dot=document.getElementById('syncDot');
     if(dot) dot.className='sync-dot error';
   });
 }
 
-function fbPushNote(idx, note){
-  // Store note to Firebase, keyed by our local id so we can match it
-  const notesRef = ref(db,`fearstorm/prompt_${idx}/notes/${note.id}`);
-  update(notesRef,{text:note.text,hex:note.hex,stamps:[],x:note.x,y:note.y,rot:note.rot,ts:serverTimestamp()}).catch(console.error);
+function fbPushNote(idx,note){
+  update(ref(db,`fearstorm/prompt_${idx}/notes/${note.id}`),
+    {text:note.text,hex:note.hex,stamps:[],x:note.x,y:note.y,rot:note.rot,ts:serverTimestamp()}).catch(console.error);
 }
-
-function fbPushStamp(idx, noteId, stampEntry){
-  // Append stamp to the note's stamps array in Firebase
-  const noteRef = ref(db,`fearstorm/prompt_${idx}/notes/${noteId}`);
-  // Read current stamps count from local state, then push
-  const note = S.fsNotes[idx].find(n=>n.id===noteId);
-  if(!note) return;
-  const stampIdx = note.stamps.length - 1; // just added locally
-  const stampData = note.stamps[stampIdx];
-  const updateObj = {};
-  updateObj[`stamps/${stampIdx}`]={stampId:stampData.stamp.id,rot:stampData.rot,wobble:stampData.wobble};
-  update(noteRef, updateObj).catch(console.error);
+function fbPushStamp(idx,noteId,stampData){
+  const note=S.fsNotes[idx].find(n=>n.id===noteId); if(!note) return;
+  const i=note.stamps.length-1;
+  const upd={};
+  upd[`stamps/${i}`]={stampId:stampData.stamp.id,rot:stampData.rot,wobble:stampData.wobble};
+  update(ref(db,`fearstorm/prompt_${idx}/notes/${noteId}`),upd).catch(console.error);
 }
 
 // =============================================
@@ -598,9 +620,62 @@ function setText(id,v){const e=document.getElementById(id);if(e)e.textContent=v;
 function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function showArrow(id){const e=document.getElementById(id);if(e)e.classList.add('visible');}
 function hideArrow(id){const e=document.getElementById(id);if(e)e.classList.remove('visible');}
-function renderBody(id,paragraphs){const el=document.getElementById(id);if(!el)return;el.innerHTML=paragraphs.map(p=>'<p>'+p.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')+'</p>').join('');}
-function buildDots(containerId,activeKey){const c=document.getElementById(containerId);if(!c)return;c.innerHTML='';SCREEN_ORDER.forEach(key=>{const dot=document.createElement('div');dot.className='intro-dot'+(key===activeKey?' active':'');c.appendChild(dot);});}
+function renderBody(id,ps){const el=document.getElementById(id);if(!el)return;el.innerHTML=ps.map(p=>'<p>'+p.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')+'</p>').join('');}
+function buildDots(cid,activeKey){const c=document.getElementById(cid);if(!c)return;c.innerHTML='';SCREEN_ORDER.forEach(k=>{const d=document.createElement('div');d.className='intro-dot'+(k===activeKey?' active':'');c.appendChild(d);});}
 function updateDots(activeKey){DOT_CONTAINERS.forEach(id=>buildDots(id,activeKey));}
+
+// =============================================
+// SCREEN NAV — local (no Firebase write)
+// =============================================
+function _showScreenLocal(id, dotKey){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if(dotKey) updateDots(dotKey);
+}
+
+// Show fearstorm locally without writing to Firebase
+function _showFearstormLocal(idx){
+  S.fsIdx=idx; S.activeTool=null;
+  setText('fsPromptText',CONFIG.prompts[idx]);
+  setText('fsIndicator',`${idx+1} of ${CONFIG.prompts.length}`);
+  setText('presFsLabel',`Fearstorm ${idx+1} of ${CONFIG.prompts.length}`);
+  setText('boardNumber',String(idx+1));
+  document.getElementById('fsAdvanceBtn').textContent=idx>=CONFIG.prompts.length-1?'Go to Q&A →':'Next prompt →';
+  renderFsBoard(idx);
+  startListeningToFearstorm(idx);
+  _showScreenLocal('screen-fearstorm',`screen-fearstorm-${idx+1}`);
+  document.getElementById('fsToolNote').classList.remove('active');
+  document.getElementById('fsToolStamp').classList.remove('active');
+  setText('fsHint','Choose a tool to get started');
+  updateToolIcons();
+}
+
+// =============================================
+// PRESENTER NAV — writes to Firebase, then navigates locally
+// =============================================
+function presNav(htmlId){
+  // Derive Firebase key from htmlId
+  const keyMap = {
+    'screen-title':'title','screen-whoami':'whoami','screen-feardef':'feardef',
+    'screen-landing':'landing','screen-tutorial':'tutorial','screen-pause':'pause',
+    'screen-qa':'qa','screen-thankyou':'thankyou'
+  };
+  const key = keyMap[htmlId];
+  if(key && key !== 'landing') fbSetScreen(key); // don't sync landing
+  _showScreenLocal(htmlId, htmlId);
+  if(htmlId==='screen-tutorial'){updateToolIcons();setTutPhase(0);}
+}
+
+function presStartFearstorm(idx){
+  const key=`fearstorm${idx}`;
+  fbSetScreen(key);
+  _showFearstormLocal(idx);
+}
+
+function presAdvanceFearstorm(){
+  if(S.fsIdx<CONFIG.prompts.length-1) presStartFearstorm(S.fsIdx+1);
+  else{ fbSetScreen('qa'); _showScreenLocal('screen-qa','screen-qa'); }
+}
 
 // =============================================
 // INIT
@@ -615,6 +690,7 @@ function init(){
   buildColorGrid(); buildStampGrid(); applyConfig();
   if(S.isPresenter) document.querySelectorAll('.presenter-bar').forEach(b=>b.style.display='flex');
   updateDots('screen-title');
+  listenToSession(); // all clients listen; presenter ignores incoming changes
 }
 
 function applyConfig(){
@@ -644,9 +720,7 @@ function applyConfig(){
 // =============================================
 // PICKERS
 // =============================================
-// Race-condition safe: single timer for auto-advance
 let _readyTimer=null;
-
 function buildColorGrid(){
   const g=document.getElementById('colorGrid');
   CONFIG.colors.forEach(c=>{
@@ -677,77 +751,38 @@ function pickStamp(id){
 }
 function checkReady(){
   if(!(S.color&&S.stamp)) return;
-  // Cancel any previous pending timer (race-condition safe)
   if(_readyTimer) clearTimeout(_readyTimer);
-  // Show toast
   const toast=document.getElementById('landingToast');
   toast.classList.add('show');
   _readyTimer=setTimeout(()=>{
     toast.classList.remove('show');
-    goToTutorial();
+    S.landingComplete=true;
+
+    // Rejoin flow: if a fearstorm is already in session, skip tutorial and jump there
+    if(S.pendingScreen){
+      const key=S.pendingScreen; S.pendingScreen=null;
+      const overlay=document.getElementById('catchupOverlay');
+      overlay.classList.add('visible');
+      setTimeout(()=>{
+        overlay.classList.remove('visible');
+        _applyRemoteScreen(key);
+      },1200);
+    } else {
+      // Normal first-time flow: go to tutorial
+      _showScreenLocal('screen-tutorial','screen-tutorial');
+      updateToolIcons(); setTutPhase(0);
+    }
     _readyTimer=null;
   },1000);
 }
+
 function updateToolIcons(){
   const svg=S.color
-    ?`<svg viewBox="0 0 32 32" width="30" height="30" xmlns="http://www.w3.org/2000/svg">
-        <rect x="3" y="3" width="26" height="26" rx="2" fill="${S.color.hex}" stroke="${S.color.tabHex}" stroke-width="1.5"/>
-        <line x1="8" y1="10" x2="24" y2="10" stroke="${S.color.tabHex}" stroke-width="1.5" stroke-linecap="round"/>
-        <line x1="8" y1="15" x2="24" y2="15" stroke="${S.color.tabHex}" stroke-width="1.5" stroke-linecap="round"/>
-        <line x1="8" y1="20" x2="18" y2="20" stroke="${S.color.tabHex}" stroke-width="1.5" stroke-linecap="round"/>
-      </svg>`
-    :`<svg viewBox="0 0 32 32" width="30" height="30" xmlns="http://www.w3.org/2000/svg">
-        <rect x="3" y="3" width="26" height="26" rx="2" fill="#eee" stroke="#ccc" stroke-width="1.5"/>
-        <line x1="8" y1="10" x2="24" y2="10" stroke="#ccc" stroke-width="1.5" stroke-linecap="round"/>
-        <line x1="8" y1="15" x2="24" y2="15" stroke="#ccc" stroke-width="1.5" stroke-linecap="round"/>
-        <line x1="8" y1="20" x2="18" y2="20" stroke="#ccc" stroke-width="1.5" stroke-linecap="round"/>
-      </svg>`;
+    ?`<svg viewBox="0 0 32 32" width="30" height="30" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="26" height="26" rx="2" fill="${S.color.hex}" stroke="${S.color.tabHex}" stroke-width="1.5"/><line x1="8" y1="10" x2="24" y2="10" stroke="${S.color.tabHex}" stroke-width="1.5" stroke-linecap="round"/><line x1="8" y1="15" x2="24" y2="15" stroke="${S.color.tabHex}" stroke-width="1.5" stroke-linecap="round"/><line x1="8" y1="20" x2="18" y2="20" stroke="${S.color.tabHex}" stroke-width="1.5" stroke-linecap="round"/></svg>`
+    :`<svg viewBox="0 0 32 32" width="30" height="30" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="26" height="26" rx="2" fill="#eee" stroke="#ccc" stroke-width="1.5"/><line x1="8" y1="10" x2="24" y2="10" stroke="#ccc" stroke-width="1.5" stroke-linecap="round"/><line x1="8" y1="15" x2="24" y2="15" stroke="#ccc" stroke-width="1.5" stroke-linecap="round"/><line x1="8" y1="20" x2="18" y2="20" stroke="#ccc" stroke-width="1.5" stroke-linecap="round"/></svg>`;
   ['tutNoteIcon','fsNoteIcon'].forEach(id=>{const e=document.getElementById(id);if(e)e.innerHTML=svg;});
   ['tutStampIcon','fsStampIcon'].forEach(id=>{const e=document.getElementById(id);if(e&&S.stamp)renderStamp(e,S.stamp,30);});
 }
-
-// =============================================
-// SCREEN NAV
-// =============================================
-// Expose to window so onclick= attributes work inside module
-function showScreen(id,dotKey){
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-  if(dotKey)updateDots(dotKey);
-}
-function goToTutorial(){
-  showScreen('screen-tutorial','screen-tutorial');
-  updateToolIcons();setTutPhase(0);
-}
-function showFearstorm(idx){
-  S.fsIdx=idx;S.activeTool=null;
-  setText('fsPromptText',CONFIG.prompts[idx]);
-  setText('fsIndicator',`${idx+1} of ${CONFIG.prompts.length}`);
-  setText('presFsLabel',`Fearstorm ${idx+1} of ${CONFIG.prompts.length}`);
-  setText('boardNumber',String(idx+1));
-  document.getElementById('fsAdvanceBtn').textContent=idx>=CONFIG.prompts.length-1?'Go to Q&A →':'Next prompt →';
-  renderFsBoard(idx);
-  startListeningToFearstorm(idx);
-  showScreen('screen-fearstorm',`screen-fearstorm-${idx+1}`);
-  document.getElementById('fsToolNote').classList.remove('active');
-  document.getElementById('fsToolStamp').classList.remove('active');
-  setText('fsHint','Choose a tool to get started');
-  updateToolIcons();
-}
-function advanceFearstorm(){
-  if(S.fsIdx<CONFIG.prompts.length-1)showFearstorm(S.fsIdx+1);
-  else showScreen('screen-qa','screen-qa');
-}
-// Expose navigation to global scope for onclick handlers outside module
-window.showScreen=showScreen;
-window.goToTutorial=goToTutorial;
-window.showFearstorm=showFearstorm;
-window.advanceFearstorm=advanceFearstorm;
-window.closeNoteEditor=closeNoteEditor;
-window.addNoteToBoard=addNoteToBoard;
-window.tutSelectTool=tutSelectTool;
-window.fsClickNote=fsClickNote;
-window.fsSelectStamp=fsSelectStamp;
 
 // =============================================
 // NOTE PLACEMENT
@@ -755,10 +790,7 @@ window.fsSelectStamp=fsSelectStamp;
 function placeNotes(notes,canvasW){
   const{noteWidth:W,noteHeight:H,notePadding:P,noteMaxRotateDeg:R,noteOffsetJitter:J}=CONFIG;
   const cols=Math.max(1,Math.floor((canvasW+P)/(W+P)));
-  notes.forEach((n,i)=>{
-    const col=i%cols,row=Math.floor(i/cols);
-    n.x=P+col*(W+P)+rand(-J,J);n.y=P+row*(H+P)+rand(-J,J);n.rot=rand(-R,R);
-  });
+  notes.forEach((n,i)=>{const col=i%cols,row=Math.floor(i/cols);n.x=P+col*(W+P)+rand(-J,J);n.y=P+row*(H+P)+rand(-J,J);n.rot=rand(-R,R);});
 }
 
 // =============================================
@@ -770,8 +802,7 @@ function makeNoteEl(note,onStamp){
   el.id='note-'+note.id;
   el.style.cssText=`background:${note.hex};left:${note.x}px;top:${note.y}px;transform:rotate(${note.rot}deg);`;
   el.innerHTML=`<span class="sticky-text">${esc(note.text)}</span><div class="sticky-stamps" id="stamps-${note.id}"></div>`;
-  // FIX: presenter mode does NOT intercept stamp clicks — anyone can stamp
-  if(onStamp) el.addEventListener('click',e=>onStamp(note.id));
+  if(onStamp) el.addEventListener('click',()=>onStamp(note.id));
   note.stamps.forEach(s=>addStampEl(note.id,s.stamp,s.rot,s.wobble));
   return el;
 }
@@ -801,7 +832,7 @@ function setTutPhase(phase){
   if(phase===0){noteBtn.classList.add('active');stampBtn.disabled=true;stampBtn.classList.remove('active');setText('tutHint','Click the sticky note to write something');showArrow('arrowNote');}
   else if(phase===1){setText('tutHint','Type your response and add it to the board');}
   else if(phase===2){stampBtn.disabled=false;setText('tutHint','Select the stamper, then click on a note');addExampleNote();showArrow('arrowStamp');}
-  else if(phase===3){setText('tutHint','Moving you over in just a moment…');noteBtn.classList.remove('active');stampBtn.classList.remove('active');setTimeout(()=>showScreen('screen-pause','screen-pause'),CONFIG.tutorial.autoAdvanceDelay);if(S.isPresenter)document.getElementById('presAdvanceTutorial').disabled=false;}
+  else if(phase===3){setText('tutHint','Moving you over in just a moment…');noteBtn.classList.remove('active');stampBtn.classList.remove('active');setTimeout(()=>_showScreenLocal('screen-pause','screen-pause'),CONFIG.tutorial.autoAdvanceDelay);if(S.isPresenter)document.getElementById('presAdvanceTutorial').disabled=false;}
 }
 function addExampleNote(){
   const canvas=document.getElementById('tutorialCanvas');
@@ -838,7 +869,7 @@ function renderFsBoard(idx){
   Array.from(canvas.children).forEach(c=>{if(!c.classList.contains('board-number'))c.remove();});
   const notes=S.fsNotes[idx];
   placeNotes(notes,canvas.offsetWidth||600);
-  notes.forEach(n=>canvas.appendChild(makeNoteEl(n,(id)=>fsStamp(id,false))));
+  notes.forEach(n=>canvas.appendChild(makeNoteEl(n,(id)=>fsStamp(id))));
 }
 function fsClickNote(){
   S.activeTool='note';
@@ -853,15 +884,14 @@ function fsSelectStamp(){
   document.getElementById('fsToolStamp').classList.add('active');
   setText('fsHint','Click on any note to stamp it');
 }
-function fsStamp(noteId, fromRemote){
-  if(!fromRemote && S.activeTool!=='stamp')return;
+function fsStamp(noteId){
+  if(S.activeTool!=='stamp')return;
   const note=S.fsNotes[S.fsIdx].find(n=>n.id===noteId);if(!note)return;
   const rot=rand(-CONFIG.stampRotateMax,CONFIG.stampRotateMax);
   const wobble=rand(-CONFIG.stampWobbleMax,CONFIG.stampWobbleMax);
   note.stamps.push({stamp:S.stamp,rot,wobble});
   addStampEl(noteId,S.stamp,rot,wobble);
-  // Sync stamp to Firebase
-  fbPushStamp(S.fsIdx, noteId, {stamp:S.stamp,rot,wobble});
+  fbPushStamp(S.fsIdx,noteId,{stamp:S.stamp,rot,wobble});
 }
 
 // =============================================
@@ -888,10 +918,10 @@ function addNoteToBoard(){
   notes.push(note);
   placeNotes(notes,canvas.offsetWidth||600);
   repositionExisting(notes);
-  const el=makeNoteEl(note,_isFearstorm?(nid)=>fsStamp(nid,false):(nid)=>tutStamp(nid));
+  const el=makeNoteEl(note,_isFearstorm?(nid)=>fsStamp(nid):(nid)=>tutStamp(nid));
   canvas.appendChild(el);
   closeNoteEditor();
-  if(_isFearstorm) fbPushNote(S.fsIdx, note);
+  if(_isFearstorm) fbPushNote(S.fsIdx,note);
   else{showGoodJob();setTimeout(()=>setTutPhase(2),1800);}
 }
 
@@ -903,6 +933,18 @@ function showGoodJob(){
   t.classList.remove('show');void t.offsetWidth;t.classList.add('show');
   setTimeout(()=>t.classList.remove('show'),1800);
 }
+
+// =============================================
+// EXPOSE TO GLOBAL (onclick= attributes)
+// =============================================
+window.closeNoteEditor=closeNoteEditor;
+window.addNoteToBoard=addNoteToBoard;
+window.tutSelectTool=tutSelectTool;
+window.fsClickNote=fsClickNote;
+window.fsSelectStamp=fsSelectStamp;
+window.presNav=presNav;
+window.presStartFearstorm=presStartFearstorm;
+window.presAdvanceFearstorm=presAdvanceFearstorm;
 
 init();
 </script>
