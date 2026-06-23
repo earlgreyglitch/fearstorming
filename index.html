@@ -470,12 +470,12 @@ const CONFIG = {
   noteWidth:148,noteHeight:124,notePadding:16,noteMaxRotateDeg:2.5,noteOffsetJitter:5,stampRotateMax:14,stampWobbleMax:5
 };
 
-// Screens that participants follow in sync (landing is intentionally excluded)
 // Maps Firebase screenKey → {htmlId, dotKey}
 const SYNC_SCREENS = {
   'title':      {htmlId:'screen-title',     dotKey:'screen-title'},
   'whoami':     {htmlId:'screen-whoami',    dotKey:'screen-whoami'},
   'feardef':    {htmlId:'screen-feardef',   dotKey:'screen-feardef'},
+  'landing':    {htmlId:'screen-landing',   dotKey:'screen-landing'},
   'tutorial':   {htmlId:'screen-tutorial',  dotKey:'screen-tutorial'},
   'pause':      {htmlId:'screen-pause',     dotKey:'screen-pause'},
   'fearstorm0': {htmlId:'screen-fearstorm', dotKey:'screen-fearstorm-1'},
@@ -573,24 +573,42 @@ function listenToSession(){
     const def = SYNC_SCREENS[key];
     if(!def){ dbg(`Unknown screen key: ${key}`, 'err'); return; }
 
-    // Participant hasn't done landing yet
-    if(!S.landingComplete){
-      if(PRE_LANDING_KEYS.has(key)){
-        // Still in intro slides — follow presenter directly
-        dbg(`Pre-landing intro screen: ${key} — following`);
-        _applyRemoteScreen(key);
-      } else if(NEEDS_LANDING.has(key)){
-        // Presenter has moved past landing — send participant there first
-        if(key.startsWith('fearstorm')) S.pendingScreen = key;
-        dbg(`Presenter past landing, redirecting participant to landing (pending: ${key})`);
-        _showScreenLocal('screen-landing');
-      }
+    // ── CASE 1: Presenter is still on intro slides ──
+    // Participants follow directly, no color/stamp needed yet
+    if(PRE_LANDING_KEYS.has(key)){
+      dbg(`Intro screen ${key} — following presenter`);
+      _applyRemoteScreen(key);
       return;
     }
 
-    // Landing complete — follow presenter everywhere except landing itself
-    dbg(`Applying remote screen: ${key}`);
-    _applyRemoteScreen(key);
+    // ── CASE 2: Presenter has reached landing ──
+    // All participants go to landing to pick color/stamp
+    // After they finish, they do tutorial locally, then pause, then sync
+    if(key === 'landing'){
+      dbg('Presenter on landing — sending participant to landing');
+      _showScreenLocal('screen-landing');
+      return;
+    }
+
+    // ── CASE 3: Presenter is past landing (tutorial, pause, fearstorms, qa, thankyou) ──
+    if(POST_LANDING_KEYS.has(key)){
+      if(!S.landingComplete){
+        // Participant hasn't picked color/stamp yet — send to landing
+        // Queue fearstorm screens so rejoin drops them in the right place
+        if(key.startsWith('fearstorm')) S.pendingScreen = key;
+        dbg(`Past landing, participant not ready — redirecting to landing (pending: ${key})`);
+        _showScreenLocal('screen-landing');
+        return;
+      }
+      // Landing complete — for tutorial/pause the participant does their own local flow
+      // For fearstorms/qa/thankyou, sync them directly
+      if(key === 'tutorial' || key === 'pause'){
+        dbg(`Participant handles ${key} locally after landing`);
+        return; // participant is already in their local tutorial→pause flow
+      }
+      dbg(`Applying remote screen: ${key}`);
+      _applyRemoteScreen(key);
+    }
   }, e => dbg(`Session listener error: ${e.message}`, 'err'));
 }
 
@@ -683,8 +701,11 @@ function updateDots(activeKey){DOT_CONTAINERS.forEach(id=>buildDots(id,activeKey
 // =============================================
 // SCREEN NAV — local (no Firebase write)
 // =============================================
-// Screens that are "before landing" — participants can join directly without picking color/stamp
+// Screens that are "before landing" — participants follow without needing color/stamp
 const PRE_LANDING_KEYS = new Set(['title','whoami','feardef']);
+
+// Once presenter moves to one of these, participants who finish landing go through tutorial locally
+const POST_LANDING_KEYS = new Set(['tutorial','pause','fearstorm0','fearstorm1','fearstorm2','qa','thankyou']);
 
 function _showScreenLocal(id, dotKey){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
