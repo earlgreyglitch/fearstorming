@@ -766,7 +766,12 @@ function init(){
   S.isPresenter=window.location.search.includes('mode=presenter');
   if(S.isPresenter) document.body.classList.add('presenter-mode');
   buildColorGrid(); buildStampGrid(); applyConfig();
-  if(S.isPresenter) document.querySelectorAll('.presenter-bar').forEach(b=>b.style.display='flex');
+  if(S.isPresenter){
+    document.querySelectorAll('.presenter-bar').forEach(b=>b.style.display='flex');
+    // Show debug panel on load — it will hide when presenter leaves slide 1
+    const panel = document.getElementById('debugPanel');
+    if(panel) panel.classList.add('visible');
+  }
   updateDots('screen-title');
   listenToSession(); // all clients listen; presenter ignores incoming changes
 }
