@@ -566,6 +566,8 @@ function listenToSession(){
   onValue(ref(db,'session/screen'), snap => {
     const key = snap.val();
     dbg(`Session snap received: ${JSON.stringify(key)}`, 'ok');
+    dbg(`State — landingComplete:${S.landingComplete} isPresenter:${S.isPresenter}`, 'info');
+    dbg(`PRE_LANDING has key: ${PRE_LANDING_KEYS.has(key)} | POST_LANDING has key: ${POST_LANDING_KEYS.has(key)}`, 'info');
 
     // null means presenter just loaded/cleared — stay on current screen
     if(!key){ dbg('Session cleared — staying put'); return; }
@@ -574,7 +576,6 @@ function listenToSession(){
     if(!def){ dbg(`Unknown screen key: ${key}`, 'err'); return; }
 
     // ── CASE 1: Presenter is still on intro slides ──
-    // Participants follow directly, no color/stamp needed yet
     if(PRE_LANDING_KEYS.has(key)){
       dbg(`Intro screen ${key} — following presenter`);
       _applyRemoteScreen(key);
@@ -582,29 +583,23 @@ function listenToSession(){
     }
 
     // ── CASE 2: Presenter has reached landing ──
-    // All participants go to landing to pick color/stamp
-    // After they finish, they do tutorial locally, then pause, then sync
     if(key === 'landing'){
       dbg('Presenter on landing — sending participant to landing');
       _showScreenLocal('screen-landing');
       return;
     }
 
-    // ── CASE 3: Presenter is past landing (tutorial, pause, fearstorms, qa, thankyou) ──
+    // ── CASE 3: Presenter is past landing ──
     if(POST_LANDING_KEYS.has(key)){
       if(!S.landingComplete){
-        // Participant hasn't picked color/stamp yet — send to landing
-        // Queue fearstorm screens so rejoin drops them in the right place
         if(key.startsWith('fearstorm')) S.pendingScreen = key;
         dbg(`Past landing, participant not ready — redirecting to landing (pending: ${key})`);
         _showScreenLocal('screen-landing');
         return;
       }
-      // Landing complete — for tutorial/pause the participant does their own local flow
-      // For fearstorms/qa/thankyou, sync them directly
       if(key === 'tutorial' || key === 'pause'){
         dbg(`Participant handles ${key} locally after landing`);
-        return; // participant is already in their local tutorial→pause flow
+        return;
       }
       dbg(`Applying remote screen: ${key}`);
       _applyRemoteScreen(key);
