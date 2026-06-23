@@ -175,6 +175,13 @@ body{font-family:var(--font);background:var(--warm-bg);color:var(--warm-text);di
 .sync-dot.connected{background:#22C55E;}
 .sync-dot.error{background:#EF4444;}
 
+/* Debug panel */
+.debug-panel{position:fixed;bottom:0;left:0;right:0;background:#1e1b4b;color:#a5b4fc;font-family:monospace;font-size:.72rem;padding:.5rem .75rem;max-height:160px;overflow-y:auto;z-index:1000;border-top:2px solid #7C3AED;}
+.debug-line{padding:.1rem 0;border-bottom:1px solid rgba(255,255,255,.05);}
+.debug-line.ok{color:#86efac;}
+.debug-line.err{color:#fca5a5;}
+.debug-line.info{color:#fde68a;}
+
 /* Catching-up overlay */
 .catchup-overlay{display:none;position:fixed;inset:0;background:rgba(61,43,31,.6);z-index:500;align-items:center;justify-content:center;}
 .catchup-overlay.visible{display:flex;}
@@ -197,6 +204,9 @@ body{font-family:var(--font);background:var(--warm-bg);color:var(--warm-text);di
     <div class="catchup-sub">We're bringing you back into the session…</div>
   </div>
 </div>
+
+<!-- DEBUG PANEL -->
+<div class="debug-panel" id="debugPanel"></div>
 
 <!-- NOTE EDITOR -->
 <div class="note-editor-overlay" id="noteEditorOverlay">
@@ -490,6 +500,21 @@ const S={
 };
 
 // =============================================
+// DEBUG LOGGER
+// =============================================
+function dbg(msg, type='info'){
+  console.log(`[Fearstorm] ${msg}`);
+  const panel = document.getElementById('debugPanel');
+  if(!panel) return;
+  const line = document.createElement('div');
+  line.className = `debug-line ${type}`;
+  const ts = new Date().toLocaleTimeString();
+  line.textContent = `[${ts}] ${msg}`;
+  panel.appendChild(line);
+  panel.scrollTop = panel.scrollHeight;
+}
+
+// =============================================
 // FIREBASE
 // =============================================
 const FB_CONFIG={
@@ -501,41 +526,48 @@ const FB_CONFIG={
   messagingSenderId:"193081397611",
   appId:"1:193081397611:web:8f3926a1047fa29680bc2e"
 };
-const fbApp = initializeApp(FB_CONFIG);
-const db    = getDatabase(fbApp);
+let fbApp, db;
+try {
+  fbApp = initializeApp(FB_CONFIG);
+  db    = getDatabase(fbApp);
+  dbg('Firebase app initialized', 'ok');
+} catch(e) {
+  dbg(`Firebase init FAILED: ${e.message}`, 'err');
+}
 
 // --- Session state ref (presenter writes, participants read) ---
 const sessionRef = ref(db, 'session');
 
 // --- Presenter: write current screen key to Firebase ---
 function fbSetScreen(screenKey){
-  set(ref(db,'session/screen'), screenKey).catch(console.error);
+  dbg(`Presenter writing screen: ${screenKey}`);
+  set(ref(db,'session/screen'), screenKey)
+    .then(()=> dbg(`Screen write OK: ${screenKey}`, 'ok'))
+    .catch(e => dbg(`Screen write FAILED: ${e.message}`, 'err'));
 }
 
 // --- All clients: listen for screen changes ---
 function listenToSession(){
+  dbg(`Starting session listener (isPresenter=${S.isPresenter})`);
   onValue(ref(db,'session/screen'), snap => {
     const key = snap.val();
-    if(!key) return;
-    if(S.isPresenter) return; // presenter drives, never follows
+    dbg(`Session snap received: ${JSON.stringify(key)}`, 'ok');
+    if(!key) { dbg('No screen key in snapshot'); return; }
+    if(S.isPresenter) { dbg('Presenter ignoring incoming sync'); return; }
 
     const def = SYNC_SCREENS[key];
-    if(!def) return;
+    if(!def) { dbg(`Unknown screen key: ${key}`, 'err'); return; }
 
-    // If participant hasn't finished landing yet, queue the destination
     if(!S.landingComplete){
-      // Fearstorm screens get queued so rejoin works
-      if(key.startsWith('fearstorm')){
-        S.pendingScreen = key;
-      }
-      // Always make sure participant is on landing if not complete
+      if(key.startsWith('fearstorm')) S.pendingScreen = key;
+      dbg(`Landing not complete — queuing ${key}, holding on landing`);
       _showScreenLocal('screen-landing');
       return;
     }
 
-    // Participant is ready — navigate them
+    dbg(`Applying remote screen: ${key}`);
     _applyRemoteScreen(key);
-  });
+  }, e => dbg(`Session listener error: ${e.message}`, 'err'));
 }
 
 function _applyRemoteScreen(key){
