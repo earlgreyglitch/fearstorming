@@ -557,6 +557,7 @@ function startListeningToFearstorm(idx) {
           repositionExisting(S.fsNotes[idx]);
           if (!document.getElementById('note-' + fbKey))
             canvas.appendChild(makeNoteEl(note, id => fsStamp(id)));
+            console.log('stamps container found:', document.getElementById('stamps-' + note.id), 'stamps to render:', note.stamps.length);
             // makeNoteEl now receives note.stamps already populated,
             // so it will render all existing stamps immediately
         }
